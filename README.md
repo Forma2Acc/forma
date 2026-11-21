@@ -6,17 +6,17 @@ Windows builds for the Forma suite. Every artifact on this page is published by 
 
 | Product | Version | What it is |
 | --- | --- | --- |
-| **Forma Code** | 1.5.1 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
+| **Forma Code** | 1.5.2 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
 | **Forma** | 1.8.3 | Desktop AI workspace based on Qwen with server-verified licensing, MCP connections, skills, mail and signed updates. |
 | **Forma Launcher** | 1.8.2 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
 
 ## Downloads
 
-- **Forma Code 1.5.1** — [FormaCode-Setup-1.5.1.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.1/FormaCode-Setup-1.5.1.exe)
+- **Forma Code 1.5.2** — [FormaCode-Setup-1.5.2.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.2/FormaCode-Setup-1.5.2.exe)
 - **Forma 1.8.3** — [Forma-Setup-1.8.3.exe](https://github.com/Forma2Acc/forma/releases/download/v1.8.3/Forma-Setup-1.8.3.exe)
 - **Forma Launcher 1.8.2** — [Forma-Launcher-1.8.2-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.8.2/Forma-Launcher-1.8.2-win64.zip)
 
-## What changed in Forma Code 1.5.1
+## What changed in Forma Code 1.5.2
 
 - **Account-first reset.** A free cap belongs to the account, not the IP. Limit Reset switches to a spare account and verifies it with a real model call in seconds — no workspace restart.
 - **Capped accounts are kept.** They stay in the pool as spares. Only expired tokens and duplicate sign-in rows are cleaned, so a reset can no longer delete its own reserves.
