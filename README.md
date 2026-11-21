@@ -8,13 +8,13 @@ Windows builds for the Forma suite. Every artifact on this page is published by 
 | --- | --- | --- |
 | **Forma Code** | 1.4.1 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
 | **Forma** | 1.8.1 | Desktop AI workspace based on Qwen with server-verified licensing, MCP connections, skills, mail and signed updates. |
-| **Forma Launcher** | 1.8.1 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
+| **Forma Launcher** | 1.8.2 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
 
 ## Downloads
 
 - **Forma Code 1.4.1** — [FormaCode-Setup-1.4.1.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.4.1/FormaCode-Setup-1.4.1.exe)
 - **Forma 1.8.1** — [Forma-Setup-1.8.1.exe](https://github.com/Forma2Acc/forma/releases/download/v1.8.1/Forma-Setup-1.8.1.exe)
-- **Forma Launcher 1.8.1** — [Forma-Launcher-1.8.1-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.8.1/Forma-Launcher-1.8.1-win64.zip)
+- **Forma Launcher 1.8.2** — [Forma-Launcher-1.8.2-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.8.2/Forma-Launcher-1.8.2-win64.zip)
 
 ## What changed in Forma Code 1.4.1
 
@@ -22,6 +22,11 @@ Windows builds for the Forma suite. Every artifact on this page is published by 
 - **Stalled resets cannot lock the button.** A watchdog releases the UI and the engine after a hung run; transient network and Cloudflare errors are retried instead of aborting the whole reset.
 - **Automatic account hygiene.** Expired credentials are removed during a reset, healthy accounts rotate automatically, and a spare account is only requested when the cap is real.
 - **Restored update pipeline.** Signed OTA checks now resolve against this repository, with SHA-256 verification before install.
+
+## What changed in Forma Launcher 1.8.2
+
+- Update downloads are scoped to the launcher's own audience, so a Forma app release can no longer overwrite the launcher.
+- Release feed and download links point at this repository.
 
 ## Auto-update and integrity
 
