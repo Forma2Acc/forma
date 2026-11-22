@@ -161,3 +161,33 @@ Get-ChildItem "$root\archive\conv" | Measure-Object | Select-Object Count
 
 Expected: `saved > 0`, `conversations` equals the real chat count, and
 `archive\conv\` holds one file per conversation with non-empty `messages`.
+
+## 10. Current release state (verified 2026-11-22)
+
+| Piece | Value |
+| --- | --- |
+| Key site | https://forma-claude-production.up.railway.app/get-key |
+| One-click payload | https://forma-claude-production.up.railway.app/download |
+| Payload release | 2.1.1, SHA-256 `e0d6a6da1420ef3713e41e5ce2b5ffc8bc4fb1e8d2a36d524e7d682ac5830885` |
+| Launcher release | 1.9.0, GitHub `v1.9.0`, SHA-256 `9a9f0456621f14251de16117327f495348d6c29600f75b7264d36b78eb9c30df` |
+| OTA catalog | `https://forma-core-production.up.railway.app/v1/releases/latest` -> 1.9.0 |
+
+Key policy: a key is valid for **5 hours**. Every accepted `/v1/validate`
+slides `expiresAt` to `now + 5h`, so an app in use never runs out; an idle key
+lapses on its own. The lease itself is 15 minutes and is renewed every 45
+seconds.
+
+`/get-key/start` returns the installation's live key (`200`, "Your key is still
+active") instead of a dead end. A 60 second cooldown applies only after a key
+has actually lapsed. `/get-key` also shows the live key when the
+`forma_inst` cookie is present.
+
+Discord cards now point at the working paths: the launcher card downloads
+`Forma-Setup-1.9.0.exe`, the Claude cards use `/download` and `/get-key`.
+
+### Linkvertise
+
+The static link's destination must be `https://<host>/get-key/return`. The
+current `LINKVERTISE_URL` destination points elsewhere, so the automatic return
+may not fire; the key page's "Landed somewhere else?" field accepts the address
+the user actually landed on and completes the challenge from its hash.
