@@ -1,0 +1,55 @@
+{
+  "appId": "ai.forma.launcher",
+  "productName": "Forma",
+  "copyright": "Forma",
+  "electronVersion": "45.1.0",
+  "electronDist": "C:\\Users\\furaa\\Desktop\\Pylon\\Neuer Ordner\\node_modules\\electron\\dist",
+  "directories": {
+    "app": "C:/Users/furaa/Documents/Standardprojekt/forma-claude/launcher",
+    "output": "C:\\Users\\furaa\\Documents\\Standardprojekt\\forma-claude\\build\\release-1.9.0"
+  },
+  "files": [
+    "**/*",
+    "!**/*.map"
+  ],
+  "asar": true,
+  "npmRebuild": false,
+  "compression": "normal",
+  "extraResources": [
+    {
+      "from": "C:/Users/furaa/AppData/Local/Programs/forma/resources/payload",
+      "to": "payload"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "C:/Users/furaa/Documents/Standardprojekt/forma-claude/launcher/assets/forma.ico",
+    "signAndEditExecutable": true,
+    "artifactName": "Forma-Setup-${version}.${ext}",
+    "requestedExecutionLevel": "asInvoker"
+  },
+  "nsis": {
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": false,
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Forma"
+  },
+  "electronFuses": {
+    "runAsNode": false,
+    "enableCookieEncryption": true,
+    "enableNodeOptionsEnvironmentVariable": false,
+    "enableNodeCliInspectArguments": false,
+    "enableEmbeddedAsarIntegrityValidation": true,
+    "onlyLoadAppFromAsar": true
+  }
+}

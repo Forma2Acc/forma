@@ -22,23 +22,33 @@ body{
   padding:40px 24px; min-height:100vh;
 }
 .wrap{width:100%; max-width:452px}
-.card{border:1px solid var(--line); border-radius:14px; padding:34px 32px 30px; background:rgba(255,255,255,.012)}
+.card{border:1px solid var(--line); border-radius:14px; padding:34px 32px 30px; background:rgba(255,255,255,.012);
+  animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
 .mark{display:block; width:46px; height:46px; margin:0 0 26px}
 .mark .bar{stroke:var(--fg); stroke-width:3.4; stroke-linecap:round; fill:none;
   stroke-dasharray:40; stroke-dashoffset:40; animation:draw .5s cubic-bezier(.2,.7,.2,1) forwards}
 .mark .b1{animation-delay:.05s}
 .mark .b2{animation-delay:.16s}
 .mark .b3{animation-delay:.27s}
-.mark .rule{fill:var(--acc); opacity:0; animation:fade .35s ease .48s forwards}
+.mark .rule{fill:var(--acc); opacity:0; animation:fade .35s ease .48s forwards, breathe 3.4s ease-in-out 1s infinite}
 @keyframes draw{to{stroke-dashoffset:0}}
 @keyframes fade{to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.55}}
 @media (prefers-reduced-motion: reduce){
+  .card{animation:none}
   .mark .bar,.mark .rule{animation:none; stroke-dashoffset:0; opacity:1}
+  .steps li{animation:none; opacity:1}
 }
 h1{margin:0 0 8px; font-size:19px; font-weight:600; letter-spacing:-.017em}
 .lede{margin:0 0 26px; color:var(--mut); font-size:13.5px; max-width:36ch}
 .steps{list-style:none; margin:0 0 26px; padding:0}
-.steps li{display:flex; gap:12px; align-items:flex-start; margin-bottom:13px; font-size:13.5px; color:var(--mut)}
+.steps li{display:flex; gap:12px; align-items:flex-start; margin-bottom:13px; font-size:13.5px; color:var(--mut);
+  animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.steps li:nth-child(1){animation-delay:.10s}
+.steps li:nth-child(2){animation-delay:.18s}
+.steps li:nth-child(3){animation-delay:.26s}
+.steps li:nth-child(4){animation-delay:.34s}
 .steps .n{flex:0 0 20px; height:20px; border:1px solid var(--line2); border-radius:6px;
   font:11px/18px ui-monospace,SFMono-Regular,Consolas,monospace; text-align:center; color:var(--dim)}
 .steps b{color:var(--fg); font-weight:500}
