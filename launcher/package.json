@@ -1,0 +1,10 @@
+{
+  "name": "forma",
+  "productName": "Forma",
+  "version": "1.9.0",
+  "description": "Forma Launcher",
+  "main": "main.cjs",
+  "author": "Forma",
+  "license": "UNLICENSED",
+  "private": true
+}

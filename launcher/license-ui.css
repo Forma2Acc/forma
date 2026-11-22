@@ -1,0 +1,44 @@
+#forma-license-lock[hidden],#forma-license-badge[hidden],#fl-dismiss[hidden]{display:none!important}
+html[data-license-gate],html[data-license-gate] body{margin:0;width:100%;height:100%;background:#101214;color:#eef0f2;overflow:hidden}
+#forma-license-lock{position:fixed;inset:46px 0 0;z-index:2147483647;display:grid;place-items:center;overflow:auto;background:#101214;color:#eef0f2;font:14px/1.55 "Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;-webkit-app-region:no-drag;text-align:left}
+#forma-license-lock *{box-sizing:border-box}.fl-backdrop{position:absolute;inset:0;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 90% 5%,#26312f60,transparent 52%),linear-gradient(145deg,#ffffff03,transparent 55%)}.fl-backdrop:after{content:"";position:absolute;width:580px;height:580px;right:-320px;top:8%;border:1px solid #ffffff09;border-radius:50%;box-shadow:0 0 0 70px #ffffff02,0 0 0 140px #ffffff02}.fl-card{position:relative;width:min(610px,calc(100vw - 64px));margin:30px 0;animation:fl-enter .4s ease-out}
+.fl-header{display:flex;align-items:center;justify-content:space-between;gap:16px}.fl-wordmark{display:flex;align-items:center;gap:12px;font-size:19px;letter-spacing:-.6px;font-weight:600}.fl-wordmark svg{width:30px;height:30px;fill:currentColor;padding:4px;border:1px solid #ffffff24;border-radius:8px}.fl-status{display:flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid #ffffff12;border-radius:100px;color:#a7adb4;font-size:11px;white-space:nowrap}.fl-status i{width:5px;height:5px;border-radius:50%;background:#9ba2aa}[data-status="active"] .fl-status{color:#a7ccba}[data-status="active"] .fl-status i{background:#a7ccba}
+.fl-intro{margin:44px 0 28px}.fl-kicker{font-size:10px;letter-spacing:1.8px;color:#747d87;font-weight:600}.fl-card h1{font-size:clamp(32px,5vw,43px);line-height:1.15;letter-spacing:-1.65px;margin:13px 0 13px;font-weight:550}.fl-card p{margin:0}.fl-intro p{max-width:510px;font-size:14px;line-height:1.7;color:#a0a7af;min-height:46px}
+#fl-form label{display:block;color:#c4c9ce;font-size:12px;margin-bottom:9px}.fl-input-wrap{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 15px;border:1px solid #ffffff24;border-radius:12px;background:#ffffff04;transition:border-color .18s,background .18s}.fl-input-wrap:focus-within{border-color:#b3c4bf;background:#ffffff06}.fl-input-wrap>svg{width:20px;height:20px;fill:none;stroke:#9098a2;stroke-width:1.4;flex-shrink:0}.fl-input-wrap input{min-width:0;width:100%;padding:18px 0;border:0;outline:0;background:none;color:#eef0f2;font:13px "Cascadia Mono",Consolas,monospace}.fl-input-wrap input::placeholder{color:#616a74}.fl-input-wrap button{border:0;background:none;color:#9ca4ae;font:11px "Segoe UI",sans-serif;cursor:pointer;padding:8px 0}.fl-input-wrap button:hover{color:#fff}
+#fl-error{min-height:37px;padding:9px 0 4px;color:#cba79e;font-size:11px;line-height:1.5}.fl-actions{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}.fl-actions button{display:flex;align-items:center;justify-content:center;gap:15px;min-height:48px;padding:10px 18px;border:1px solid #ffffff20;border-radius:10px;background:#ffffff04;color:#d6dbe0;font:500 13px "Segoe UI",sans-serif;cursor:pointer;transition:background .18s,transform .18s}.fl-actions .fl-primary{justify-content:space-between;background:#e8ece9;color:#171d1b;border-color:#e8ece9}.fl-actions button:hover{background:#ffffff0d;transform:translateY(-1px)}.fl-actions .fl-primary:hover{background:#fff}.fl-actions button:active{transform:translateY(0)}.fl-actions button:disabled{opacity:.5;cursor:wait;transform:none}
+.fl-bottom{display:flex;align-items:center;gap:16px;justify-content:space-between;margin:19px 0 31px;font-size:10px;color:#6f7984}.fl-bottom button{padding:0;border:0;background:none;color:#a8b0b9;font:inherit;cursor:pointer}.fl-bottom button:hover{color:#fff}.fl-footer{display:flex;gap:12px;padding:21px 0 0;border-top:1px solid #ffffff0d}.fl-footer svg{width:19px;height:23px;flex-shrink:0;stroke:#7e9187;fill:none;stroke-width:1.3}.fl-footer p{display:grid;gap:4px;font-size:10px;color:#717d86;line-height:1.6}.fl-footer strong{color:#9ca8af;font-weight:500}
+#forma-license-badge{position:fixed;right:145px;top:11px;z-index:2147483646;padding:5px 10px;border:1px solid #ffffff18;border-radius:100px;background:#171c1b;color:#b2c2ba;font:10px "Segoe UI",sans-serif;cursor:pointer;-webkit-app-region:no-drag}.forma-access-locked webview,.forma-access-locked .shell{visibility:hidden!important;pointer-events:none!important}
+@keyframes fl-enter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){#forma-license-lock *{animation:none!important;transition:none!important}}@media(max-width:620px){.fl-card{width:calc(100vw - 40px)}.fl-status{font-size:9px}.fl-intro{margin-top:30px}.fl-actions{grid-template-columns:1fr}.fl-bottom{flex-wrap:wrap;gap:10px}}
+.fl-inline-banner{margin-top:10px;padding:8px 12px;border-radius:6px;background:#151820;border:1px solid #2b313f;color:#e8eaef;font-size:12px}
+.fl-inline-banner[data-level="warn"]{border-color:#5b4621;background:#1f1910;color:#fcd34d}
+.fl-inline-banner[data-level="critical"]{border-color:#5f2126;background:#241114;color:#fca5a5}
+#forma-global-banner[hidden],#forma-admin-dm[hidden]{display:none!important}
+#forma-global-banner{position:fixed;top:48px;left:50%;transform:translateX(-50%);z-index:2147483640;max-width:min(540px,88vw);padding:7px 14px;border-radius:6px;background:#101217f2;border:1px solid #262b36;color:#e8eaef;font:500 12px/1.35 "Segoe UI",system-ui,sans-serif;box-shadow:0 12px 32px rgba(0,0,0,.55);backdrop-filter:blur(10px);-webkit-app-region:no-drag}
+#forma-global-banner[data-level="warn"]{border-color:#685023;color:#fcd34d}
+#forma-global-banner[data-level="critical"]{border-color:#6b2329;background:#1d0e11f5;color:#fca5a5}
+#forma-admin-dm{position:fixed;right:20px;bottom:20px;z-index:2147483645;width:min(360px,90vw);background:#101217fa;border:1px solid #2a303d;border-radius:8px;padding:14px 16px;color:#e8eaef;font:13px/1.45 "Segoe UI",system-ui,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.68);backdrop-filter:blur(14px);animation:fl-enter .22s ease-out;-webkit-app-region:no-drag}
+#forma-admin-dm[data-severity="warn"]{border-color:#685023}
+#forma-admin-dm[data-severity="critical"]{border-color:#74262d;background:#160d0ffa}
+.fl-dm-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.fl-dm-head small{margin-left:auto;color:#6c7587;font:11px/1 "Cascadia Mono",Consolas,monospace}
+.fl-dm-dot{width:7px;height:7px;border-radius:50%;background:#34d399;flex:none}
+#forma-admin-dm[data-severity="warn"] .fl-dm-dot{background:#f59e0b}
+#forma-admin-dm[data-severity="critical"] .fl-dm-dot{background:#f87171}
+#fl-dm-body{margin:0;color:#b8c0ce;font-size:12.5px;white-space:pre-wrap;word-break:break-word}
+.fl-dm-actions{display:flex;justify-content:flex-end;margin-top:12px}
+#fl-dm-ack{padding:5px 12px;border-radius:5px;border:1px solid #353c4c;background:#e9e7e1;color:#090a0d;font:600 11.5px/1.2 inherit;cursor:pointer}
+#fl-dm-ack:hover{background:#fff}
+.fl-review{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:22px 0 30px;padding:16px 18px;border:1px solid #534e42;border-radius:10px;background:#171612}
+.fl-review p{max-width:360px;color:#c5beb0;font-size:12px;line-height:1.6;margin:0}
+#fl-review-appeal{flex:none;padding:11px 15px;border:1px solid #e6e2d8;border-radius:8px;background:#e6e2d8;color:#151615;font:600 12px "Segoe UI",sans-serif;cursor:pointer}
+#fl-review-appeal:hover{background:#fff}
+.fl-review[hidden]{display:none!important}
+.fl-id-box{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 6px;padding:10px 14px;border:1px solid #ffffff1a;border-radius:10px;background:#ffffff06}
+.fl-id-box[hidden]{display:none!important}
+.fl-id-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fl-id-label{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#7a8592;font-weight:600}
+.fl-id-val{font:600 13.5px/1.25 "Cascadia Mono",Consolas,monospace;color:#eef2f7;letter-spacing:.4px}
+.fl-id-full{font:10.5px/1.2 "Cascadia Mono",Consolas,monospace;color:#788390;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-id-copy{flex:none;padding:7px 12px;border:1px solid #ffffff26;border-radius:8px;background:#ffffff0c;color:#e8ece9;font:500 11.5px/1 "Segoe UI",sans-serif;cursor:pointer;transition:background .15s,border-color .15s}
+.fl-id-copy:hover{background:#ffffff1a;border-color:#ffffff40}
+@media(max-width:620px){.fl-review{align-items:flex-start;flex-direction:column}.fl-id-box{flex-wrap:wrap}}
