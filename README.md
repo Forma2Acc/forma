@@ -8,26 +8,20 @@ Windows builds for the Forma suite. Every artifact on this page is published by 
 | --- | --- | --- |
 | **Forma Code** | 1.5.5 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
 | **Forma** | 1.9.2 | Desktop AI workspace based on Qwen with server-verified licensing, MCP connections, skills, mail and signed updates. |
-| **Forma Launcher** | 1.8.2 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
+| **Forma Launcher** | 1.9.2 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
 
 ## Downloads
 
 - **Forma Code 1.5.5** — [FormaCode-Setup-1.5.5.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.5/FormaCode-Setup-1.5.5.exe)
 - **Forma 1.9.2** — [Forma-Setup-1.9.2.exe](https://github.com/Forma2Acc/forma/releases/download/v1.9.2/Forma-Setup-1.9.2.exe)
-- **Forma Launcher 1.8.2** — [Forma-Launcher-1.8.2-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.8.2/Forma-Launcher-1.8.2-win64.zip)
+- **Forma Launcher 1.9.2** — [Forma-Launcher-1.9.2-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.9.2/Forma-Launcher-1.9.2-win64.zip)
 
-## What changed in Forma Code 1.5.5
+## What changed in Forma Code 1.5.5 & Forma 1.9.2
 
-- **Account-first reset.** A free cap belongs to the account, not the IP. Limit Reset switches to a spare account and verifies it with a real model call in seconds — no workspace restart.
-- **Capped accounts are kept.** They stay in the pool as spares. Only expired tokens and duplicate sign-in rows are cleaned, so a reset can no longer delete its own reserves.
-- **One card per account.** Repeated sign-ins create several credential rows for the same account; the settings studio collapses them into a single entry with a sign-in count.
-- **Honest countdown.** When every account is capped, the panel shows when the cap actually ends and keeps Add Account one click away. Auto-retry arms itself for that moment.
-- **Reliable cap detection.** The workspace reports a 429 as HTTP 502 with a `rate_limit` payload; both are recognised, so a real cap is never mistaken for a network error.
-- **No pointless IP rotation.** If every account carries the same hours-long cap, the reset skips egress rotation instead of restarting the workspace for nothing.
-- **Faster sweeps.** Two independent free models agreeing on the cap end the probe instead of six requests per account.
-- **Mid-session recovery.** When the scanner sees the free-limit response during normal work, it switches to a fresh account automatically.
-- **Always clickable Reset.** The pill stays mounted inside the "Free limit reached" card, above every overlay, and a stalled run can never lock the button.
-- **Automatic updates.** Signed OTA checks run every 30 minutes and install silently; the GitHub release page is only a fallback.
+- **Deterministic WARP & proxy egress (Forma Code 1.5.5):** Fixed Cloudflare WARP SOCKS5 vs HTTP `CONNECT` negotiation on `127.0.0.1:40000`, added port-bind readiness polling, RFC 1929 SOCKS5 + HTTP `Proxy-Authorization` support, fast `--connect-timeout` probing, and clean socket teardown in `stopTraffic()`.
+- **Reliable limit reset & license checks (Forma Code 1.5.5):** Added port-release waits between OpenCode service stop/start, guarded `probeOnce()` and failover against transient timeouts, fixed clock-skew false `security-blocked` states, and hardened Windows atomic file writes.
+- **Automatic app detection & self-healing (Forma 1.9.2):** Discovers installations across Windows 11 MSIX/Store (`Get-AppxPackage`), Uninstall registry (`HKCU`/`HKLM`), Start Menu/Desktop `.lnk` shortcuts, and custom folders — with automatic `winget` install fallback and automatic `%APPDATA%\Forma\updates` cache pruning.
+- **Rebuilt 2-ad Get-Key websites:** Dedicated minimalist animated pages for each product (`/get-key`, `/get-key/code`, `/get-key/claude`) with kinetic Forma `F.` background animation, strict 2-ad Linkvertise checkpoint meter, and cookie-less server recovery.
 
 ## Auto-update and integrity
 
