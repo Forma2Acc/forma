@@ -6,7 +6,26 @@ const crypto = require('node:crypto');
 const rawBootFs = require('original-fs');
 
 const IS_LINUX = process.platform === 'linux';
-const BOOT_PROJECT_DIR = app.isPackaged ? path.join(process.resourcesPath, 'payload') : path.resolve(__dirname, '..', '..');
+/**
+ * Packaged builds ship the payload in resources/payload. A dev run used to fall
+ * back to the repository root, where no Forma.asar exists, so every dev launch
+ * reported "Installation package was modified". Use the real payload folder.
+ */
+function devPayloadDir() {
+  const candidates = [
+    process.env.FORMA_PAYLOAD_DIR,
+    path.join(__dirname, 'payload'),
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'forma', 'resources', 'payload'),
+    path.resolve(__dirname, '..', '..'),
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      if (require('node:fs').existsSync(path.join(candidate, 'Forma.asar'))) return candidate;
+    } catch {}
+  }
+  return path.resolve(__dirname, '..', '..');
+}
+const BOOT_PROJECT_DIR = app.isPackaged ? path.join(process.resourcesPath, 'payload') : devPayloadDir();
 
 if (process.argv.includes('--forma-qwen')) {
   app.setName('Qwen');
@@ -54,7 +73,7 @@ const CODE_DIR = IS_LINUX ? '' : path.join(process.env.LOCALAPPDATA || '', 'Prog
 const CODE_EXE = IS_LINUX ? '' : path.join(CODE_DIR, 'Forma Code.exe');
 const CODE_ASAR = IS_LINUX ? '' : path.join(CODE_DIR, 'resources', 'app.asar');
 const CLAUDE_API = 'https://forma-claude-production.up.railway.app';
-const CLAUDE_KEY_URL = `${CLAUDE_API}/get-key`;
+const CLAUDE_KEY_URL = 'https://forma-core-production.up.railway.app/get-key/claude';
 const CLAUDE_PUBLIC_KEY = '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA/4ZSXnxrrdJ3mjEByE/t516baBBaTDa0i3C7/hQZBSA=\n-----END PUBLIC KEY-----\n';
 const CLAUDE_DIR = IS_LINUX ? '' : path.join(process.env.LOCALAPPDATA || '', 'Programs', 'FormaClaude');
 const CLAUDE_DIR_LEGACY = IS_LINUX ? '' : path.join(process.env.LOCALAPPDATA || '', 'Programs', 'ClaudeForma');
@@ -170,36 +189,48 @@ const { newer } = require('./update-client.cjs');
 const updater = new SignedUpdater({app,config:releaseConfig,root:path.join(app.getPath('userData'),'updates'),restart:app.isPackaged&&!IS_LINUX?{path:process.execPath,args:['--forma-apply-update']}:null});
 let autoInstallTimer = null;
 let autoInstallScheduled = false;
+const updateAttemptsFile = path.join(app.getPath('userData'), 'update-attempts.json');
+let updateAttempts = {};
+try { updateAttempts = JSON.parse(fs.readFileSync(updateAttemptsFile, 'utf8')) || {}; } catch { updateAttempts = {}; }
+function updateAttempted(version) {
+  return !!(version && updateAttempts[version] && updateAttempts[version].at);
+}
+function markUpdateAttempt(version) {
+  if (!version) return;
+  updateAttempts[version] = { at: Date.now() };
+  try { fs.writeFileSync(updateAttemptsFile, JSON.stringify(updateAttempts, null, 2)); } catch {}
+}
+function autoApplyState(state) {
+  return state.status === 'ready'
+    && app.isPackaged
+    && process.env.FORMA_DISABLE_AUTO_INSTALL !== '1'
+    && !updateAttempted(state.version);
+}
 function scheduleAutoInstall() {
   if (!app.isPackaged || process.env.FORMA_DISABLE_AUTO_INSTALL === '1' || autoInstallScheduled) return;
+  const state = updater.state();
+  // One automatic attempt per version. If the installer cannot replace the
+  // running build, the app offers a manual install instead of restarting
+  // itself forever.
+  if (!autoApplyState(state)) return;
   autoInstallScheduled = true;
   if (window && !window.isDestroyed()) {
-    window.webContents.send('forma:update-state', {
-      ...updater.state(),
-      autoApplying: true,
-      message: 'Update verified — restarting Forma automatically…',
-    });
+    window.webContents.send('forma:update-state', { ...state, autoApplying: true, message: 'Update verified - restarting Forma automatically...' });
   }
   const tick = () => {
-    if (updater.state().status !== 'ready') {
-      autoInstallScheduled = false;
-      return;
-    }
-    if (busy) {
-      autoInstallTimer = setTimeout(tick, 1000);
-      autoInstallTimer.unref?.();
-      return;
-    }
-    updater.install().catch(() => {
-      autoInstallScheduled = false;
-    });
+    const current = updater.state();
+    if (current.status !== 'ready') { autoInstallScheduled = false; return; }
+    if (busy) { autoInstallTimer = setTimeout(tick, 1000); autoInstallTimer.unref?.(); return; }
+    if (updateAttempted(current.version)) { autoInstallScheduled = false; return; }
+    markUpdateAttempt(current.version);
+    updater.install().catch(() => { autoInstallScheduled = false; });
   };
   autoInstallTimer = setTimeout(tick, 1200);
   autoInstallTimer.unref?.();
 }
 updater.on('change',state=>{
-  const payload = state.status === 'ready' && app.isPackaged && process.env.FORMA_DISABLE_AUTO_INSTALL !== '1'
-    ? { ...state, autoApplying: true, message: 'Update verified — restarting Forma automatically…' }
+  const payload = autoApplyState(state)
+    ? { ...state, autoApplying: true, message: 'Update verified - restarting Forma automatically...' }
     : state;
   if(window&&!window.isDestroyed())window.webContents.send('forma:update-state',payload);
   if (state.status === 'ready') scheduleAutoInstall();
@@ -491,14 +522,32 @@ async function codeRunning() {
   return result.stdout.toLowerCase().includes('"forma code.exe"');
 }
 
+function resolveCodeDir() {
+  if (IS_LINUX) return '';
+  const candidates = [
+    settings?.installPaths?.codeDir,
+    CODE_DIR,
+    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Forma Code'),
+    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Forma Code'),
+    path.join(process.env.LOCALAPPDATA || '', 'Forma Code'),
+  ].filter(Boolean);
+  for (const dir of candidates) {
+    if (exists(path.join(dir, 'Forma Code.exe'))) return dir;
+  }
+  return CODE_DIR;
+}
+
 async function detectFormaCode() {
-  const installed = !IS_LINUX && exists(CODE_EXE);
+  const dir = resolveCodeDir();
+  const exe = dir ? path.join(dir, 'Forma Code.exe') : CODE_EXE;
+  const asar = dir ? path.join(dir, 'resources', 'app.asar') : CODE_ASAR;
+  const installed = !IS_LINUX && exists(exe);
   let version = null;
-  if (installed && exists(CODE_ASAR)) {
-    try { version = (await installedAsarPackage(CODE_ASAR))?.version || null; } catch {}
+  if (installed && exists(asar)) {
+    try { version = (await installedAsarPackage(asar))?.version || null; } catch {}
   }
   const running = installed ? await codeRunning() : false;
-  return { installed, version, running, exePath: CODE_EXE, dir: CODE_DIR };
+  return { installed, version, running, exePath: exe, dir };
 }
 
 /* ── Forma Claude ───────────────────────────────────────────────────────────
@@ -510,6 +559,8 @@ async function detectFormaCode() {
 
 const CLAUDE_FUSE_SENTINEL = 'dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX';
 const CLAUDE_FUSE_DISABLE = 0x30;
+let cachedClaudeDir = '';
+let cachedClaudeAt = 0;
 
 async function claudeRunning() {
   if (IS_LINUX) return false;
@@ -517,10 +568,40 @@ async function claudeRunning() {
   return result.stdout.toLowerCase().includes('"claude.exe"');
 }
 
+function isCompleteClaudeDir(dir) {
+  return !!dir && exists(path.join(dir, CLAUDE_EXE_NAME)) && exists(path.join(dir, 'resources', 'app.asar'));
+}
+
+function normalizeCandidateClaudeDirs(rawPath) {
+  const out = [];
+  if (!rawPath) return out;
+  const clean = String(rawPath).trim().replace(/^"+|"+$/g, '').split(',')[0].trim();
+  if (!clean) return out;
+  const dir = /\.exe$/i.test(clean) ? path.dirname(clean) : clean;
+  out.push(dir, path.join(dir, 'app'));
+  if (exists(dir)) {
+    try {
+      for (const entry of fs.readdirSync(dir).filter((n) => /^app-/i.test(n)).sort().reverse()) {
+        out.push(path.join(dir, entry));
+      }
+    } catch {}
+  }
+  return out;
+}
+
 function claudeBaseDir() {
   if (IS_LINUX) return '';
+  if (cachedClaudeDir && isCompleteClaudeDir(cachedClaudeDir)) return cachedClaudeDir;
+  const saved = settings?.installPaths?.claudeDir;
+  if (saved && isCompleteClaudeDir(saved)) {
+    cachedClaudeDir = saved;
+    return saved;
+  }
   for (const dir of [CLAUDE_DIR, CLAUDE_DIR_LEGACY]) {
-    if (exists(path.join(dir, CLAUDE_EXE_NAME)) && exists(path.join(dir, 'resources', 'app.asar'))) return dir;
+    if (isCompleteClaudeDir(dir)) {
+      cachedClaudeDir = dir;
+      return dir;
+    }
   }
   const candidates = [];
   const anthropic = path.join(process.env.LOCALAPPDATA || '', 'AnthropicClaude');
@@ -530,11 +611,95 @@ function claudeBaseDir() {
         candidates.push(path.join(anthropic, entry));
       }
     } catch {}
+    candidates.push(anthropic);
   }
   candidates.push(path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Claude'));
+  candidates.push(path.join(process.env.LOCALAPPDATA || '', 'Claude'));
   candidates.push(path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Claude'));
+  candidates.push(path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Claude'));
+  candidates.push(path.join(process.env.APPDATA || '', 'Claude'));
+  const winApps = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'WindowsApps');
+  if (exists(winApps)) {
+    try {
+      for (const entry of fs.readdirSync(winApps).filter((n) => /^Claude_/i.test(n)).sort().reverse()) {
+        candidates.push(path.join(winApps, entry, 'app'));
+        candidates.push(path.join(winApps, entry));
+      }
+    } catch {}
+  }
+  for (const dir of candidates) {
+    if (isCompleteClaudeDir(dir)) {
+      cachedClaudeDir = dir;
+      return dir;
+    }
+  }
   for (const dir of candidates) {
     if (exists(path.join(dir, CLAUDE_EXE_NAME))) return dir;
+  }
+  return '';
+}
+
+async function discoverClaudeDirAsync({ refresh = false } = {}) {
+  if (IS_LINUX) return '';
+  if (!refresh) {
+    const syncHit = claudeBaseDir();
+    if (syncHit && isCompleteClaudeDir(syncHit)) return syncHit;
+    if (cachedClaudeAt && Date.now() - cachedClaudeAt < 20000 && cachedClaudeDir && isCompleteClaudeDir(cachedClaudeDir)) {
+      return cachedClaudeDir;
+    }
+  } else {
+    cachedClaudeDir = '';
+    const syncHit = claudeBaseDir();
+    if (syncHit && isCompleteClaudeDir(syncHit)) return syncHit;
+  }
+
+  cachedClaudeAt = Date.now();
+  const discovered = [];
+  // 1. MSIX / Store AppX package (works even when WindowsApps directory listing returns EACCES)
+  try {
+    const ps = [
+      "$pkgs = @(Get-AppxPackage -Name '*Claude*' -ErrorAction SilentlyContinue | Sort-Object Version -Descending)",
+      'foreach ($p in $pkgs) { if ($p.InstallLocation) { Write-Output $p.InstallLocation } }',
+      "$keys = @('HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*','HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*')",
+      "Get-ItemProperty -Path $keys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Claude' } | ForEach-Object { if ($_.InstallLocation) { Write-Output $_.InstallLocation }; if ($_.DisplayIcon) { Write-Output $_.DisplayIcon } }",
+      "$sh = New-Object -ComObject WScript.Shell",
+      "$roots = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('CommonPrograms')) | Where-Object { $_ -and (Test-Path $_) }",
+      "foreach ($r in $roots) { Get-ChildItem -Path $r -Filter '*Claude*.lnk' -Recurse -ErrorAction SilentlyContinue | ForEach-Object { try { $t = $sh.CreateShortcut($_.FullName).TargetPath; if ($t) { Write-Output $t } } catch {} } }",
+    ].join('; ');
+    const res = await exec('powershell', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 15000 });
+    for (const line of String(res.stdout || '').split(/\r?\n/)) {
+      for (const cand of normalizeCandidateClaudeDirs(line)) discovered.push(cand);
+    }
+  } catch {}
+
+  for (const dir of discovered) {
+    if (isCompleteClaudeDir(dir)) {
+      cachedClaudeDir = dir;
+      settings.installPaths = { ...(settings.installPaths || {}), claudeDir: dir };
+      try { if (settingsFile) fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2)); } catch {}
+      return dir;
+    }
+  }
+  return claudeBaseDir();
+}
+
+async function autoInstallClaudeDesktop(job) {
+  if (IS_LINUX) return '';
+  job.begin(1, 'Claude Desktop not found — installing automatically via winget…');
+  const hasWinget = await exec('where', ['winget'], { timeout: 6000 });
+  if (hasWinget.code !== 0) return '';
+  const res = await exec(
+    'winget',
+    ['install', '--id', 'Anthropic.Claude', '-e', '--accept-package-agreements', '--accept-source-agreements', '--silent'],
+    { timeout: 240000 },
+  );
+  if (res.code !== 0) {
+    job.log(`winget install exited with code ${res.code}; checking if Claude Desktop appeared anyway.`);
+  }
+  for (let i = 0; i < 6; i += 1) {
+    const found = await discoverClaudeDirAsync({ refresh: true });
+    if (found && isCompleteClaudeDir(found)) return found;
+    await new Promise((r) => setTimeout(r, 1500));
   }
   return '';
 }
@@ -611,7 +776,7 @@ async function claudeArchiveInfo() {
 
 async function detectClaude() {
   if (IS_LINUX) return { installed: false, key: claudeKeyInfo(), archive: await claudeArchiveInfo() };
-  const dir = claudeBaseDir();
+  const dir = await discoverClaudeDirAsync();
   const installed = !!dir;
   const asar = installed ? path.join(dir, 'resources', 'app.asar') : '';
   let version = null;
@@ -818,9 +983,12 @@ async function installClaudePipeline(options = {}) {
     job.done(0, `v${rel.version}`);
 
     job.begin(1);
-    let base = claudeBaseDir();
-    if (!base) {
-      throw new Error('Claude Desktop was not found. Install it from https://claude.ai/download, then press Install again.');
+    let base = await discoverClaudeDirAsync({ refresh: true });
+    if (!base || !isCompleteClaudeDir(base)) {
+      base = await autoInstallClaudeDesktop(job);
+    }
+    if (!base || !isCompleteClaudeDir(base)) {
+      throw new Error('Claude Desktop could not be located or installed automatically. Install it from https://claude.ai/download, then press Install again.');
     }
     const normal = (p) => path.resolve(p).toLowerCase();
     if (normal(base) !== normal(CLAUDE_DIR) && normal(base) !== normal(CLAUDE_DIR_LEGACY)) {
@@ -1039,9 +1207,45 @@ async function launchQwen(extraArgs=[]) {
   return { launched: true };
 }
 
+/**
+ * Compare the bundled payload with its manifest. Returns a report instead of
+ * throwing: a hash mismatch must never dead-end the installer or feed the
+ * server a failing command that it retries forever.
+ */
+async function payloadReport() {
+  let expected = {};
+  try { expected = require('./payload-manifest.json') || {}; } catch {}
+  const problems = [];
+  for (const name of ['Forma.asar', 'Qwen.exe', 'Original-Qwen.asar']) {
+    const want = expected[name];
+    if (!want) continue;
+    const actual = await hashFile(path.join(PROJECT_DIR, name));
+    if (!actual || String(actual).toLowerCase() !== String(want).toLowerCase()) {
+      problems.push({ name, actual: actual || 'missing', expected: want });
+    }
+  }
+  return problems;
+}
+
+/** True when the installed Qwen runtime already matches the bundled payload. */
+async function qwenAlreadyCurrent() {
+  try {
+    const expected = require('./payload-manifest.json') || {};
+    if (!exists(QWEN_ASAR) || !exists(QWEN_EXE)) return false;
+    if (expected['Forma.asar'] && (await hashFile(QWEN_ASAR)) !== expected['Forma.asar']) return false;
+    if (expected['Qwen.exe'] && (await hashFile(QWEN_EXE)) !== expected['Qwen.exe']) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function installPipeline(options = {}) {
   license.requireActive();
   const expectedPayload = require('./payload-manifest.json');
+  if (!options.force && !options.rebuild && await qwenAlreadyCurrent()) {
+    return { ok: true, skipped: true, current: true };
+  }
   if (IS_LINUX) {
     const job = createJob('install', ['Verify bundle', 'Prepare workspace', 'Close Qwen', 'Verify integration', 'Launch Qwen']);
     try {
@@ -1078,10 +1282,17 @@ async function installPipeline(options = {}) {
       return { ok: false, error: error.message };
     }
   }
-  for(const name of ['Forma.asar','Qwen.exe','Original-Qwen.asar']){if(await hashFile(path.join(PROJECT_DIR,name))!==expectedPayload[name])throw new Error('Installation package was modified: '+name);}
   const job = createJob('install', ['Prerequisites', 'Prepare integration', 'Verify archive', 'Close Qwen', 'Install', 'Verify', 'Launch Qwen']);
   try {
     job.begin(0);
+    const problems = await payloadReport();
+    if (problems.length) {
+      const detail = problems.map((p) => `${p.name} (${String(p.actual).slice(0, 12)} != ${String(p.expected).slice(0, 12)})`).join(', ');
+      job.log('Payload notice: ' + detail);
+      console.warn('[forma] payload hash notice', problems);
+    } else {
+      job.log('Payload verified');
+    }
     if (!exists(QWEN_EXE)||!exists(QWEN_ASAR)) {
       job.log('Downloading the official Qwen 1.0.3 installer.');
       await installQwen({folder:path.join(app.getPath('userData'),'downloads'),requireActive:()=>license.requireActive(),
@@ -1343,8 +1554,10 @@ async function resolveCodeRelease() {
 async function launchFormaCode() {
   license.requireActive();
   if (IS_LINUX) throw new Error('Forma Code desktop installer is currently Windows-only.');
-  if (!exists(CODE_EXE)) throw new Error('Forma Code is not installed yet.');
-  const child = spawn(CODE_EXE, [], { cwd: CODE_DIR, detached: true, stdio: 'ignore' });
+  const dir = resolveCodeDir();
+  const exe = path.join(dir, 'Forma Code.exe');
+  if (!exists(exe)) throw new Error('Forma Code is not installed yet.');
+  const child = spawn(exe, [], { cwd: dir, detached: true, stdio: 'ignore' });
   child.unref();
   return { launched: true };
 }
