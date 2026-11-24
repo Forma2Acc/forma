@@ -6,20 +6,20 @@ Windows builds for the Forma suite. Every artifact on this page is published by 
 
 | Product | Version | What it is |
 | --- | --- | --- |
-| **Forma Code** | 1.5.5 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
+| **Forma Code** | 1.5.6 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
 | **Forma** | 1.9.2 | Desktop AI workspace based on Qwen with server-verified licensing, MCP connections, skills, mail and signed updates. |
 | **Forma Launcher** | 1.9.2 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
 
 ## Downloads
 
-- **Forma Code 1.5.5** — [FormaCode-Setup-1.5.5.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.5/FormaCode-Setup-1.5.5.exe)
+- **Forma Code 1.5.6** — [FormaCode-Setup-1.5.6.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.6/FormaCode-Setup-1.5.6.exe)
 - **Forma 1.9.2** — [Forma-Setup-1.9.2.exe](https://github.com/Forma2Acc/forma/releases/download/v1.9.2/Forma-Setup-1.9.2.exe)
 - **Forma Launcher 1.9.2** — [Forma-Launcher-1.9.2-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.9.2/Forma-Launcher-1.9.2-win64.zip)
 
-## What changed in Forma Code 1.5.5 & Forma 1.9.2
+## What changed in Forma Code 1.5.6 & Forma 1.9.2
 
-- **Deterministic WARP & proxy egress (Forma Code 1.5.5):** Fixed Cloudflare WARP SOCKS5 vs HTTP `CONNECT` negotiation on `127.0.0.1:40000`, added port-bind readiness polling, RFC 1929 SOCKS5 + HTTP `Proxy-Authorization` support, fast `--connect-timeout` probing, and clean socket teardown in `stopTraffic()`.
-- **Reliable limit reset & license checks (Forma Code 1.5.5):** Added port-release waits between OpenCode service stop/start, guarded `probeOnce()` and failover against transient timeouts, fixed clock-skew false `security-blocked` states, and hardened Windows atomic file writes.
+- **Complete rounded GUI redesign (Forma Code 1.5.6):** Eliminated every square corner across the Control Plane, status dock, modals, forms, badges, scrollbars, and License Gate with a unified rounded token scale (`8px`–`22px` & full pills), frosted dark surfaces, hairline translucent borders, and spring micro-transitions.
+- **Egress circuit breaker & self-healing failover (Forma Code 1.5.6):** Added per-egress health tracking (consecutive failures, latency EMA, exponential cooldown backoff) across WARP SOCKS5, WARP HTTP, proxy pool nodes, and direct routing — prioritizing low-latency healthy nodes, skipping cooled endpoints, and failing over stalled/refused connections automatically.
 - **Automatic app detection & self-healing (Forma 1.9.2):** Discovers installations across Windows 11 MSIX/Store (`Get-AppxPackage`), Uninstall registry (`HKCU`/`HKLM`), Start Menu/Desktop `.lnk` shortcuts, and custom folders — with automatic `winget` install fallback and automatic `%APPDATA%\Forma\updates` cache pruning.
 - **Rebuilt 2-ad Get-Key websites:** Dedicated minimalist animated pages for each product (`/get-key`, `/get-key/code`, `/get-key/claude`) with kinetic Forma `F.` background animation, strict 2-ad Linkvertise checkpoint meter, and cookie-less server recovery.
 
