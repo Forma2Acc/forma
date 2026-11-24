@@ -65,6 +65,68 @@ function newer(a, b) {
   return false;
 }
 
+const INSTALLER_NAME_RE = /^Forma-(\d+\.\d+\.\d+)\.(exe|AppImage|tar\.gz)$/;
+const PART_NAME_RE = /^Forma-.*\.(?:exe|AppImage|tar\.gz)(?:\.\d+)?\.part$/;
+
+async function pruneUpdateCache(root, { keepFile = null, keepLatest = 2, partMaxAgeMs = 24 * 60 * 60 * 1000, now = Date.now() } = {}) {
+  const summary = { removed: [], kept: [], freedBytes: 0 };
+  if (!root) return summary;
+  let entries;
+  try {
+    entries = await fs.readdir(root, { withFileTypes: true });
+  } catch {
+    return summary;
+  }
+  const keepResolved = keepFile ? path.resolve(keepFile) : null;
+  const installers = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const fullPath = path.join(root, entry.name);
+    if (PART_NAME_RE.test(entry.name)) {
+      try {
+        const st = await fs.stat(fullPath);
+        if (now - st.mtimeMs >= partMaxAgeMs) {
+          await fs.rm(fullPath, { force: true });
+          summary.removed.push(entry.name);
+          summary.freedBytes += st.size;
+        } else {
+          summary.kept.push(entry.name);
+        }
+      } catch {}
+      continue;
+    }
+    const m = entry.name.match(INSTALLER_NAME_RE);
+    if (m) {
+      installers.push({ name: entry.name, fullPath, ver: m[1] });
+    }
+  }
+  installers.sort((a, b) => (newer(a.ver, b.ver) ? -1 : newer(b.ver, a.ver) ? 1 : 0));
+  const keepCount = Math.max(1, keepLatest);
+  const keptSet = new Set();
+  for (const item of installers) {
+    if (keepResolved && path.resolve(item.fullPath) === keepResolved) {
+      keptSet.add(item.fullPath);
+    }
+  }
+  for (const item of installers) {
+    if (keptSet.size >= keepCount) break;
+    keptSet.add(item.fullPath);
+  }
+  for (const item of installers) {
+    if (keptSet.has(item.fullPath)) {
+      summary.kept.push(item.name);
+      continue;
+    }
+    try {
+      const st = await fs.stat(item.fullPath);
+      await fs.rm(item.fullPath, { force: true });
+      summary.removed.push(item.name);
+      summary.freedBytes += st.size;
+    } catch {}
+  }
+  return summary;
+}
+
 function verifyRelease(envelope, config, current) {
   if (
     typeof envelope?.payload !== 'string' ||
@@ -318,6 +380,7 @@ class SignedUpdater extends EventEmitter {
       const existing = await fs.readFile(out);
       if (existing.length === m.bytes && crypto.createHash('sha256').update(existing).digest('hex') === m.sha256) {
         this.file = out;
+        await pruneUpdateCache(this.root, { keepFile: out }).catch(() => {});
         return this.set({
           status: 'ready',
           message: 'Verified & ready to install.',
@@ -363,6 +426,7 @@ class SignedUpdater extends EventEmitter {
       if (total !== m.bytes || hash.digest('hex') !== m.sha256) throw Error('Update checksum verification failed.');
       await fs.rename(tmp, out);
       this.file = out;
+      await pruneUpdateCache(this.root, { keepFile: out }).catch(() => {});
       return this.set({
         status: 'ready',
         message: 'Verified & ready to install.',
@@ -406,4 +470,4 @@ class SignedUpdater extends EventEmitter {
   }
 }
 
-module.exports = { SignedUpdater, verifyRelease, newer, windowsUpdateCommand };
+module.exports = { SignedUpdater, verifyRelease, newer, windowsUpdateCommand, pruneUpdateCache };
