@@ -6,21 +6,22 @@ Windows builds for the Forma suite. Every artifact on this page is published by 
 
 | Product | Version | What it is |
 | --- | --- | --- |
-| **Forma Code** | 1.5.6 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
-| **Forma** | 1.9.3 | Desktop AI workspace based on Qwen with server-verified licensing, MCP connections, skills, mail and signed updates. |
-| **Forma Launcher** | 1.9.3 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
+| **Forma Code** | 1.5.7 | Desktop coding workspace based on OpenCode. Ships the Limit Reset engine, account rotation, signed OTA updates and the Forma settings studio. |
+| **Forma** | 1.9.4 | Desktop AI workspace based on Qwen with server-verified licensing, MCP connections, skills, mail and signed updates. |
+| **Forma Launcher** | 1.9.4 | Central hub that detects, installs, updates and launches Forma and Forma Code from one window. |
 
 ## Downloads
 
-- **Forma Code 1.5.6** — [FormaCode-Setup-1.5.6.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.6/FormaCode-Setup-1.5.6.exe)
-- **Forma 1.9.3** — [Forma-Setup-1.9.3.exe](https://github.com/Forma2Acc/forma/releases/download/v1.9.3/Forma-Setup-1.9.3.exe)
-- **Forma Launcher 1.9.3** — [Forma-Launcher-1.9.3-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.9.3/Forma-Launcher-1.9.3-win64.zip)
+- **Forma Code 1.5.7** — [FormaCode-Setup-1.5.7.exe](https://github.com/Forma2Acc/forma/releases/download/forma-code-v1.5.7/FormaCode-Setup-1.5.7.exe)
+- **Forma 1.9.4** — [Forma-Setup-1.9.4.exe](https://github.com/Forma2Acc/forma/releases/download/v1.9.4/Forma-Setup-1.9.4.exe)
+- **Forma Launcher 1.9.4** — [Forma-Launcher-1.9.4-win64.zip](https://github.com/Forma2Acc/forma/releases/download/forma-launcher-v1.9.4/Forma-Launcher-1.9.4-win64.zip)
 
-## What changed in Forma Code 1.5.6 & Forma 1.9.3
+## What changed in Forma Code 1.5.7 & Forma 1.9.4
 
-- **Complete rounded GUI redesign (Forma Code 1.5.6):** Eliminated every square corner across the Control Plane, status dock, modals, forms, badges, scrollbars, and License Gate with a unified rounded token scale (`8px`–`22px` & full pills), frosted dark surfaces, hairline translucent borders, and spring micro-transitions.
-- **Egress circuit breaker & self-healing failover (Forma Code 1.5.6):** Added per-egress health tracking (consecutive failures, latency EMA, exponential cooldown backoff) across WARP SOCKS5, WARP HTTP, proxy pool nodes, and direct routing — prioritizing low-latency healthy nodes, skipping cooled endpoints, and failing over stalled/refused connections automatically.
-- **Automatic app detection & self-healing (Forma 1.9.3):** Discovers installations across Windows 11 MSIX/Store (`Get-AppxPackage`), Uninstall registry (`HKCU`/`HKLM`), Start Menu/Desktop `.lnk` shortcuts, and custom folders — with automatic `winget` install fallback and automatic `%APPDATA%\Forma\updates` cache pruning.
+- **Upgraded code-block & markdown formatting (Forma Code 1.5.7):** Deep obsidian (`#0b0b0f`) rounded `14px` code blocks, diffs, and terminal outputs with high-contrast monospace typography (`Geist Mono` / `JetBrains Mono` / `Cascadia Mono`, `13px`, `1.62` line-height, `tab-size: 2`), clean horizontal scrolling (`white-space: pre`) with pill scrollbars, crisp inline `code` pills, rounded markdown tables, accent-bar blockquotes, and polished Control Plane inspector logs.
+- **Fully rounded GUI (Forma Code 1.5.7):** Eliminated every square corner (`border-radius: 0`) across the Control Plane, status dock, modals, forms, badges, scrollbars, and License Gate with a unified rounded token scale (`8px`–`22px` & full pills), frosted dark surfaces, hairline translucent borders, and spring micro-transitions.
+- **Egress circuit breaker & self-healing failover (Forma Code 1.5.7):** Per-egress health tracking (consecutive failures, latency EMA, exponential cooldown backoff) across WARP SOCKS5, WARP HTTP, proxy pool nodes, and direct routing — prioritizing low-latency healthy nodes, skipping cooled endpoints, and failing over stalled/refused connections automatically.
+- **Automatic app detection & self-healing (Forma 1.9.4):** Discovers installations across Windows 11 MSIX/Store (`Get-AppxPackage`), Uninstall registry (`HKCU`/`HKLM`), Start Menu/Desktop `.lnk` shortcuts, and custom folders — with automatic `winget` install fallback and automatic `%APPDATA%\Forma\updates` cache pruning.
 - **Rebuilt 2-ad Get-Key websites:** Dedicated minimalist animated pages for each product (`/get-key`, `/get-key/code`, `/get-key/claude`) with kinetic Forma `F.` background animation, strict 2-ad Linkvertise checkpoint meter, and cookie-less server recovery.
 
 ## Auto-update and integrity
