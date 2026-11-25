@@ -1,5 +1,5 @@
 {
-  "appVersion": "1.9.3",
+  "appVersion": "1.9.4",
   "apiUrl": "https://forma-core-production.up.railway.app",
   "gatewayUrl": "https://forma-core-production.up.railway.app/get-key",
   "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAyC1FwFLEvqHjY5+bFA/Y/PQuK8T/4pFWUF4TLCKa1Uc=\n-----END PUBLIC KEY-----\n",
