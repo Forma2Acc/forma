@@ -798,6 +798,7 @@ async function detectClaude() {
     version,
     managedVersion: manifest?.version || null,
     managedHash: manifest?.asarSha256 || null,
+    localPin: !!manifest?.localPin,
     running: installed ? await claudeRunning() : false,
     hash: asar ? await hashFile(asar) : null,
     patched: !!asar && exists(asar + '.forma-backup'),
@@ -964,6 +965,19 @@ async function installClaudePipeline(options = {}) {
     job.begin(0);
     const rel = await resolveClaudeRelease();
     const current = await detectClaude();
+    if (current.installed && current.localPin && current.hash && current.hash === current.managedHash && !options.ignoreLocalPin) {
+      job.done(0, `v${current.managedVersion || rel.version} (local build pinned)`);
+      job.done(1, 'Kept local build');
+      job.done(2, 'Skipped');
+      job.done(3, 'Verified');
+      job.done(4, 'Skipped');
+      job.done(5, 'Skipped');
+      job.done(6, current.hash.slice(0, 12) + ' …');
+      if (options.launch) await launchClaude();
+      job.done(7, options.launch ? 'Launched' : 'Ready');
+      job.finish('Forma Claude local build is up to date and protected.');
+      return { ok: true, version: current.managedVersion || rel.version, upToDate: true, localPin: true };
+    }
     const upToDate = current.installed && !!current.managedVersion
       && current.managedVersion === rel.version
       && current.hash === current.managedHash;
