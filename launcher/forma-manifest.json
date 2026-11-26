@@ -1,0 +1,4 @@
+{
+  "payload": "{\"generation\":\"forma-1.9.5\",\"minLauncher\":\"1.9.5\",\"createdAt\":\"2026-11-26T20:38:50.533Z\",\"merkleRoot\":\"c526861dc2d789827dd95070bd248280622035a3822af611f016775bbd221158\",\"smokeExe\":null,\"files\":[{\"path\":\"Forma.asar\",\"sha256\":\"c5deea805cbb2c686260c8810cf99015d5c51e74174917114bb4799ca487fbcb\",\"size\":16725202,\"version\":\"1.9.5\"},{\"path\":\"Original-Qwen.asar\",\"sha256\":\"ebc1b0e1cbdee2723bd52c7e869292d624c67f1d0b2be3bc5704e2b6d2a1552f\",\"size\":16716911,\"version\":\"1.9.5\"},{\"path\":\"Qwen.exe\",\"sha256\":\"682174348c3a4487d770e5fbe161dd5a138091ed9e89fce704b477ecaf247b54\",\"size\":199419904,\"version\":\"1.9.5\"},{\"path\":\"forma-core.exe\",\"sha256\":\"3e31b09fa2758a4eac0e6219d94207612f4e63f54280280ee01384514c6b3b8e\",\"size\":381952,\"version\":\"1.9.5\"}]}",
+  "signature": "dnAUxZ0sltuAfHGs3pD93OWZV2IfJTHeLWIthR5uN2jEVaLiKxxo9UTDTNyh8PEEYwfI_osmZZyjOBqUD043BQ"
+}
