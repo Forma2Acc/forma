@@ -27,6 +27,23 @@ function devPayloadDir() {
 }
 const BOOT_PROJECT_DIR = app.isPackaged ? path.join(process.resourcesPath, 'payload') : devPayloadDir();
 
+if (process.argv.includes('--forma-selftest')) {
+  try {
+    const manifest = require('./payload-manifest.json');
+    const qwenAsar = path.join(BOOT_PROJECT_DIR, 'Forma.asar');
+    if (rawBootFs.existsSync(qwenAsar) && manifest['Forma.asar']) {
+      const actual = crypto.createHash('sha256').update(rawBootFs.readFileSync(qwenAsar)).digest('hex');
+      if (actual !== manifest['Forma.asar']) throw new Error('Forma.asar checksum mismatch.');
+    }
+    require('./self-healer.cjs');
+    app.exit(0);
+  } catch (err) {
+    console.error('[Forma-SelfTest] Failed:', err?.message || err);
+    app.exit(1);
+  }
+  return;
+}
+
 if (process.argv.includes('--forma-qwen')) {
   app.setName('Qwen');
   if (IS_LINUX) {
@@ -61,6 +78,7 @@ const { SecurityShield, writeLauncherAnchor } = require('./security-shield.cjs')
 const launcherVault = require('./windows-vault.cjs');
 const { SignedUpdater } = require('./update-client.cjs');
 const { installQwen } = require('./qwen-installer.cjs');
+const { createSelfHealer, verifyManifestEnvelope } = require('./self-healer.cjs');
 
 const ORIGINAL_SHA = 'ebc1b0e1cbdee2723bd52c7e869292d624c67f1d0b2be3bc5704e2b6d2a1552f';
 const QWEN_DATA = IS_LINUX
@@ -1490,6 +1508,52 @@ app.whenReady().then(async () => {
     }).catch(() => {});
   }
   createWindow();
+  // Boot self-heal loop (§4.3): fast-path verify + blob repair if signed forma-manifest.json is present
+  const selfHealer = createSelfHealer({
+    localAppData: process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local'),
+    appData: app.getPath('appData'),
+    publicKeyPem: releaseConfig.updatePublicKey,
+    killRunning: async () => {
+      if (IS_LINUX) return;
+      await exec('taskkill', ['/F', '/IM', 'Qwen.exe']).catch(() => {});
+    },
+    onToast: (message) => {
+      try {
+        window?.webContents?.send('forma:progress', { kind: 'heal-toast', message });
+      } catch {}
+    },
+  });
+  let lastHealResult = { ok: true, skipped: true };
+  async function runBootHeal() {
+    const manifestCandidates = [
+      path.join(selfHealer.paths.formaLocal, 'forma-manifest.json'),
+      path.join(PROJECT_DIR, 'forma-manifest.json'),
+      path.join(__dirname, 'forma-manifest.json'),
+    ];
+    for (const mf of manifestCandidates) {
+      if (fs.existsSync(mf)) {
+        try {
+          const env = JSON.parse(fs.readFileSync(mf, 'utf8'));
+          const verified = verifyManifestEnvelope(env, releaseConfig.updatePublicKey);
+          if (verified?.generation && /^[a-zA-Z0-9._-]+$/.test(verified.generation) && Array.isArray(verified.files)) {
+            const genDir = path.join(selfHealer.paths.generationsDir, verified.generation);
+            if (!rawFs.existsSync(genDir) && rawFs.existsSync(PROJECT_DIR)) {
+              await selfHealer.seedGenerationFromDir(verified.generation, PROJECT_DIR, verified.files).catch(() => {});
+            }
+          }
+          lastHealResult = await selfHealer.heal({ manifestEnvelope: env });
+          return lastHealResult;
+        } catch (err) {
+          lastHealResult = { ok: false, reason: String(err?.message || err) };
+          return lastHealResult;
+        }
+      }
+    }
+    return lastHealResult;
+  }
+  ipcMain.handle('forma:heal-status', async (event) => { localUpdate(event); return lastHealResult; });
+  ipcMain.handle('forma:heal-run', async (event) => { localUpdate(event); return runBootHeal(); });
+  setTimeout(() => { runBootHeal().catch(() => {}); }, 400).unref();
   setTimeout(()=>{collectLauncherTelemetry().catch(()=>{});},350).unref();
   setTimeout(()=>{updater.check({autoDownload:true}).catch(()=>{});applyRequestedUpdate().catch(()=>{});},3000).unref();
   const updateTimer=setInterval(()=>updater.check({autoDownload:true}).catch(()=>{}),10*60*1000);updateTimer.unref();
