@@ -3202,6 +3202,17 @@
       setLive(false);
       toast(String(ev.message).slice(0, 160));
     }
+    if (ev.phase === "gated") {
+      setLive(false);
+      setPct(0);
+      setBig(
+        0,
+        "Signup paused",
+        String(ev.message || "Claude is not accepting new signups right now. Nothing was changed."),
+      );
+      if (el.runBtn) el.runBtn.textContent = "Try again";
+      toast("Signup gate active - account and chats unchanged.");
+    }
     if (ev.phase === "cancelled") {
       setLive(false);
       setPct(0);

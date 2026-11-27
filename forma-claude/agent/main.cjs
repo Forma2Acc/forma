@@ -3083,7 +3083,32 @@ async function runReset(opts = {}) {
     } else {
       // The signup runs in its own throwaway session, so the current login is
       // never touched until a new account is ready to take over.
-      account = await createClaudeAccount({ signal, emit: (e) => emit({ runId: id, ...e }) });
+      try {
+        account = await createClaudeAccount({ signal, emit: (e) => emit({ runId: id, ...e }) });
+      } catch (err) {
+        // A provider-side signup gate is not a failure of this machine. Stop
+        // cleanly: the archive above is complete, the current session is
+        // untouched, and the user is told exactly what happened.
+        if (err && err.code === "EGATE") {
+          log("[reset] signup gated", { captured: archived });
+          emit({
+            runId: id,
+            pct: 0,
+            phase: "gated",
+            message:
+              "Claude is not accepting new signups right now. Your current account stays signed in and every chat is already archived. Try again later.",
+            gated: true,
+          });
+          return {
+            ok: false,
+            gated: true,
+            keptSession: true,
+            archived,
+            reason: "signup gate active",
+          };
+        }
+        throw err;
+      }
       await appendAccount(account);
     }
 
