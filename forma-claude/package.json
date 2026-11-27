@@ -1,15 +1,15 @@
-{
-  "name": "forma-claude",
-  "version": "2.0.0",
-  "private": true,
-  "type": "module",
-  "description": "Forma Claude — launcher, license core, chat store, admin hub",
-  "scripts": {
-    "start": "node server/app.mjs",
-    "provision:discord": "node tools/discord-provision.mjs",
-    "check": "node --check client/main/forma-chat-store.cjs && node --check client/main/forma-ui-guard.cjs && node --check client/main/forma-protected.cjs"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+﻿{
+    "name":  "forma-claude",
+    "version":  "2.2.0",
+    "private":  true,
+    "type":  "module",
+    "description":  "Forma Claude â€” launcher, license core, chat store, admin hub",
+    "scripts":  {
+                    "start":  "node server/app.mjs",
+                    "provision:discord":  "node tools/discord-provision.mjs",
+                    "check":  "node --check client/main/forma-chat-store.cjs \u0026\u0026 node --check client/main/forma-ui-guard.cjs \u0026\u0026 node --check client/main/forma-protected.cjs"
+                },
+    "engines":  {
+                    "node":  "\u003e=20"
+                }
 }
