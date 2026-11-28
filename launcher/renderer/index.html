@@ -45,6 +45,7 @@
       <nav class="nav">
         <button class="nav-item is-active" data-view="home"><svg viewBox="0 0 20 20"><path d="M3 8.5 10 3l7 5.5V16a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1Z"/></svg>Home</button>
         <button class="nav-item" data-view="models"><svg viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/></svg>Models<span class="nav-count" id="modelCount">5</span></button>
+        <button class="nav-item" data-view="tutorials"><svg viewBox="0 0 20 20"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H16v14H5.5A1.5 1.5 0 0 1 4 15.5Z"/><path d="M4 14.5h12M7.5 6.5h5M7.5 9.5h5"/></svg>Tutorials<span class="nav-count">4</span></button>
         <button class="nav-item" data-view="activity"><svg viewBox="0 0 20 20"><path d="M2 10h4l2.5-6 3.5 12 2.5-6H18"/></svg>Activity</button>
         <button class="nav-item" data-view="settings"><svg viewBox="0 0 20 20"><path d="M3 6h14M3 14h14"/><circle cx="8" cy="6" r="2"/><circle cx="13" cy="14" r="2"/></svg>Settings</button>
       </nav>
@@ -149,6 +150,23 @@
       <div class="grid" id="allGrid"></div>
     </section>
 
+    <section class="view" id="view-tutorials">
+      <div class="eyebrow">GUIDES &amp; WORKFLOWS</div>
+      <h1>Tutorials.</h1>
+      <p class="lede">Interactive step-by-step guides for keys, limit resets, local tools, and network resilience.</p>
+      <div class="tutorial-toolbar">
+        <div class="filter-pills" id="tutorialFilters">
+          <button class="filter-pill is-active" data-topic="all" type="button">All</button>
+          <button class="filter-pill" data-topic="launcher" type="button">Launcher &amp; Keys</button>
+          <button class="filter-pill" data-topic="qwen" type="button">Qwen Desktop</button>
+          <button class="filter-pill" data-topic="claude" type="button">Forma Claude</button>
+          <button class="filter-pill" data-topic="code" type="button">Forma Code</button>
+        </div>
+        <span class="tutorial-summary" id="tutorialProgress">0 / 16 steps checked</span>
+      </div>
+      <div class="tutorial-grid" id="tutorialGrid"></div>
+    </section>
+
     <section class="view" id="view-activity">
       <div class="eyebrow">OPERATIONS</div>
       <h1>Activity.</h1>
@@ -171,8 +189,30 @@
         <div class="setting"><div class="setting-copy"><strong>Motion</strong><span>Subtle background, card and page transitions.</span></div><button class="switch" data-setting="motion" role="switch"></button></div>
         <div class="setting"><div class="setting-copy"><strong>Rebuild before installation</strong><span>Build the local source before installing. For developers.</span></div><button class="switch" data-setting="rebuild" role="switch"></button></div>
         <div class="setting"><div class="setting-copy"><strong>Launch after installation</strong><span>Open Qwen when the installation completes.</span></div><button class="switch" data-setting="launchAfterInstall" role="switch"></button></div>
-        <div class="setting"><div class="setting-copy"><strong>Auto-update all apps</strong><span>Keep Qwen and Forma Code updated automatically from verified releases.</span></div><button class="switch" data-setting="autoUpdateApps" role="switch"></button></div>
+        <div class="setting"><div class="setting-copy"><strong>Auto-update all apps</strong><span>Keep Qwen, Forma Code, and Forma Claude updated automatically from signed releases.</span></div><button class="switch" data-setting="autoUpdateApps" role="switch"></button></div>
+        <div class="setting"><div class="setting-copy"><strong>Auto-apply launcher updates</strong><span>Automatically download and install signed Forma Launcher updates once per version.</span></div><button class="switch" data-setting="autoApplyLauncherUpdates" role="switch"></button></div>
         <div class="setting"><div class="setting-copy"><strong>Hide launcher on launch</strong><span>Keep Forma in the background when Qwen opens.</span></div><button class="switch" data-setting="hideOnLaunch" role="switch"></button></div>
+      </div>
+
+      <div class="section-head"><h2>Updates &amp; self-heal</h2><span id="settingsUpdateBadge">Checking…</span></div>
+      <div class="setting-card">
+        <div class="setting">
+          <div class="setting-copy">
+            <strong>Launcher &amp; suite updates</strong>
+            <span id="settingsUpdateStatus">Checking signed release channels…</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btnUpdateCheck" type="button">Check launcher updates</button>
+            <button class="btn primary" id="btnUpdateAll" type="button">Update all apps</button>
+          </div>
+        </div>
+        <div class="setting">
+          <div class="setting-copy">
+            <strong>Self-healing integrity check</strong>
+            <span id="settingsHealStatus">Verifies Ed25519 manifest &amp; repairs payload files from local cache.</span>
+          </div>
+          <button class="btn ghost" id="btnSelfHeal" type="button">Verify &amp; heal</button>
+        </div>
       </div>
 
       <div class="section-head"><h2>Folders</h2><span>Stored on this PC</span></div>
