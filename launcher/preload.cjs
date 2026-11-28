@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('forma', {
   restore: () => ipcRenderer.invoke('forma:restore'),
   archive: () => ipcRenderer.invoke('forma:archive'),
   settings: (update) => ipcRenderer.invoke('forma:settings', update),
+  healStatus: () => ipcRenderer.invoke('forma:heal-status'),
+  healRun: () => ipcRenderer.invoke('forma:heal-run'),
   reveal: (target) => ipcRenderer.invoke('forma:reveal', target),
   help: (target) => ipcRenderer.invoke('forma:help', target),
   window: (action) => ipcRenderer.invoke('forma:window', action),
