@@ -347,3 +347,45 @@ body.no-motion *, body.no-motion *::before, body.no-motion *::after { animation:
 }
 .key-input::placeholder { color: var(--faint); }
 .key-input:focus { outline: none; border-color: rgba(147, 191, 162, 0.55); background: rgba(255, 255, 255, 0.06); }
+
+/* ---------- tutorials ---------- */
+.tutorial-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 24px 0 18px; }
+.filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-pill {
+  padding: 7px 14px; border-radius: 999px; font-size: 12px; color: var(--muted);
+  border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03);
+  transition: color 0.18s var(--ease), background 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.filter-pill:hover { color: var(--ink); border-color: var(--line-strong); }
+.filter-pill.is-active { color: #0a0b0d; background: var(--ink); border-color: transparent; font-weight: 600; }
+.tutorial-summary { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.tutorial-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.tutorial-card { padding: 22px 24px; }
+.tutorial-head { display: flex; align-items: center; gap: 14px; }
+.tutorial-head .mark { width: 46px; height: 46px; border-radius: 13px; flex: 0 0 46px; }
+.tutorial-head .mark svg { width: 22px; height: 22px; }
+.tutorial-title-wrap { flex: 1; min-width: 0; }
+.tutorial-title { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; }
+.tutorial-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tutorial-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.tutorial-step {
+  display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start;
+  padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025); cursor: pointer; text-align: left; width: 100%;
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.tutorial-step:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.045); }
+.tutorial-step.done { border-color: rgba(147, 191, 162, 0.3); background: rgba(147, 191, 162, 0.06); }
+.tutorial-check {
+  width: 22px; height: 22px; border-radius: 7px; border: 1px solid var(--line-strong);
+  display: grid; place-items: center; font-size: 12px; color: transparent; margin-top: 1px;
+  transition: all 0.18s var(--ease);
+}
+.tutorial-step.done .tutorial-check { border-color: var(--ok); background: rgba(147, 191, 162, 0.2); color: var(--ok); }
+.tutorial-step-title { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.tutorial-step-body { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; user-select: text; }
+.tutorial-step-body code {
+  font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07); color: var(--ink);
+}
+.tutorial-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
