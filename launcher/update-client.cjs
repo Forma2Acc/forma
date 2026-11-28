@@ -392,38 +392,81 @@ class SignedUpdater extends EventEmitter {
     } catch {}
     let file;
     try {
-      const r = await this.fetch(m.url, { signal: AbortSignal.timeout(300000) });
-      if (!r.ok || !r.body) throw Error('Update download failed.');
-      const finalUrl = new URL(r.url || m.url);
-      if (finalUrl.protocol !== 'https:' || !['github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(finalUrl.hostname)) {
-        throw Error('Unexpected download host.');
-      }
-      file = await fs.open(tmp, 'w', 0o600);
-      let total = 0;
-      const startTime = Date.now();
-      let lastEmit = 0;
-      const hash = crypto.createHash('sha256');
-      for await (const chunk of r.body) {
-        total += chunk.length;
-        if (total > m.bytes) throw Error('The update exceeds its signed size.');
-        hash.update(chunk);
-        await file.write(chunk);
-        const now = Date.now();
-        if (now - lastEmit > 120 || total === m.bytes) {
-          lastEmit = now;
-          const elapsed = Math.max(0.1, (now - startTime) / 1000);
-          this.set({
-            downloadedBytes: total,
-            totalBytes: m.bytes,
-            speedBps: Math.round(total / elapsed),
-            progress: Math.floor((total / m.bytes) * 100),
-          });
+      const maxAttempts = 3;
+      let lastErr = null;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        let existingSize = 0;
+        try {
+          const st = await fs.stat(tmp);
+          if (st.size > 0 && st.size <= m.bytes) existingSize = st.size;
+          else if (st.size > m.bytes) await fs.rm(tmp, { force: true });
+        } catch {}
+        try {
+          if (existingSize === m.bytes) break;
+          const headers = existingSize > 0 ? { Range: `bytes=${existingSize}-` } : {};
+          const r = await this.fetch(m.url, { headers, signal: AbortSignal.timeout(300000) });
+          if (r.status === 416 && existingSize === m.bytes) break;
+          if ((!r.ok && r.status !== 206) || !r.body) {
+            const err = Error(`Update download failed (HTTP ${r.status}).`);
+            err.retryable = r.status === 408 || r.status === 429 || r.status >= 500;
+            throw err;
+          }
+          const finalUrl = new URL(r.url || m.url);
+          const host = finalUrl.hostname.toLowerCase();
+          if (finalUrl.protocol !== 'https:' || (host !== 'github.com' && !host.endsWith('.githubusercontent.com'))) {
+            throw Error('Unexpected download host.');
+          }
+          const resuming = r.status === 206 && existingSize > 0;
+          file = await fs.open(tmp, resuming ? 'a' : 'w', 0o600);
+          let total = resuming ? existingSize : 0;
+          const startTime = Date.now();
+          let sessionBytes = 0;
+          let lastEmit = 0;
+          for await (const chunk of r.body) {
+            total += chunk.length;
+            sessionBytes += chunk.length;
+            if (total > m.bytes) throw Error('The update exceeds its signed size.');
+            await file.write(chunk);
+            const now = Date.now();
+            if (now - lastEmit > 120 || total === m.bytes) {
+              lastEmit = now;
+              const elapsed = Math.max(0.1, (now - startTime) / 1000);
+              this.set({
+                downloadedBytes: total,
+                totalBytes: m.bytes,
+                speedBps: Math.round(sessionBytes / elapsed),
+                progress: Math.floor((total / m.bytes) * 100),
+              });
+            }
+          }
+          await file.close();
+          file = null;
+          if (total < m.bytes) {
+            const err = Error('Update download ended early.');
+            err.retryable = true;
+            throw err;
+          }
+          lastErr = null;
+          break;
+        } catch (err) {
+          if (file) {
+            await file.close().catch(() => {});
+            file = null;
+          }
+          lastErr = err;
+          const transient = err?.retryable || /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|UND_ERR_|socket hang up|aborted|network|stream/i.test(String(err?.message || ''));
+          if (!transient || attempt >= maxAttempts) throw err;
+          this.set({ message: `Connection interrupted — resuming download (attempt ${attempt + 1}/${maxAttempts})…` });
+          await new Promise((resolve) => setTimeout(resolve, 900 * attempt));
         }
       }
-      await file.close();
-      file = null;
+      if (lastErr) throw lastErr;
       this.set({ status: 'verifying', message: 'Verifying SHA-256 & Ed25519 signature…', progress: 100 });
-      if (total !== m.bytes || hash.digest('hex') !== m.sha256) throw Error('Update checksum verification failed.');
+      const finalStat = await fs.stat(tmp);
+      const finalBytes = await fs.readFile(tmp);
+      if (finalStat.size !== m.bytes || crypto.createHash('sha256').update(finalBytes).digest('hex') !== m.sha256) {
+        throw Error('Update checksum verification failed.');
+      }
       await fs.rename(tmp, out);
       this.file = out;
       await pruneUpdateCache(this.root, { keepFile: out }).catch(() => {});
