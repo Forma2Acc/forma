@@ -107,6 +107,7 @@ const DEFAULT_SETTINGS = {
   launchAfterInstall: true,
   hideOnLaunch: false,
   autoUpdateApps: true,
+  autoApplyLauncherUpdates: true,
   rebuild: false
 };
 
@@ -221,11 +222,12 @@ function markUpdateAttempt(version) {
 function autoApplyState(state) {
   return state.status === 'ready'
     && app.isPackaged
+    && settings.autoApplyLauncherUpdates !== false
     && process.env.FORMA_DISABLE_AUTO_INSTALL !== '1'
     && !updateAttempted(state.version);
 }
 function scheduleAutoInstall() {
-  if (!app.isPackaged || process.env.FORMA_DISABLE_AUTO_INSTALL === '1' || autoInstallScheduled) return;
+  if (!app.isPackaged || settings.autoApplyLauncherUpdates === false || process.env.FORMA_DISABLE_AUTO_INSTALL === '1' || autoInstallScheduled) return;
   const state = updater.state();
   // One automatic attempt per version. If the installer cannot replace the
   // running build, the app offers a manual install instead of restarting
@@ -256,7 +258,7 @@ updater.on('change',state=>{
 license.on('change', s => {
   const ver = s?.policy?.latestRelease?.version;
   if (ver && newer(ver, app.getVersion()) && ['idle', 'current', 'error'].includes(updater.state().status)) {
-    updater.check({ autoDownload: true }).catch(() => {});
+    updater.check({ autoDownload: settings.autoApplyLauncherUpdates !== false }).catch(() => {});
   }
 });
 license.on('change',state=>{if(state.status==='update-required')updater.check({ autoDownload: true }).catch(()=>{})});
@@ -910,6 +912,68 @@ async function copyDirWithProgress(src, dst, onProgress) {
   onProgress(done, total || 1);
 }
 
+function formatActionableError(err, label = 'operation') {
+  const code = String(err?.code || err?.cause?.code || '').toUpperCase();
+  const msg = String(err?.message || err || 'Unknown error');
+  if (code === 'ENOSPC' || /no space left/i.test(msg)) {
+    return `${label} failed: Not enough free disk space. Free up space on your system drive and retry.`;
+  }
+  if (['EACCES', 'EPERM', 'EBUSY'].includes(code) || /EBUSY|EPERM|EACCES|locked|access denied/i.test(msg)) {
+    return `${label} failed: File is locked or permission denied. Close running AI apps, check Windows Defender / antivirus exclusions, and retry.`;
+  }
+  if (/fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|UND_ERR_|ERR_NAME_NOT_RESOLVED|network|timed out|aborted|HTTP (?:408|429|5\d\d)/i.test(msg)) {
+    return `${label} failed (${msg}). Check your internet connection or toggle Cloudflare WARP / VPN and retry.`;
+  }
+  return msg;
+}
+
+async function downloadFileWithRetry(url, destPath, { timeoutMs = 240000, maxAttempts = 3, onProgress = null, label = 'Download' } = {}) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+      if (!res.ok || !res.body) {
+        const err = new Error(`${label} failed (HTTP ${res.status}).`);
+        err.retryable = res.status === 408 || res.status === 429 || res.status >= 500;
+        throw err;
+      }
+      const total = Number(res.headers.get('content-length') || 0);
+      const fh = await rawFs.promises.open(destPath, 'w', 0o600);
+      let loaded = 0;
+      let lastEmit = 0;
+      try {
+        for await (const chunk of res.body) {
+          await fh.write(chunk);
+          loaded += chunk.length;
+          const now = Date.now();
+          if (onProgress && (now - lastEmit > 250 || (total && loaded >= total))) {
+            lastEmit = now;
+            onProgress(loaded, total);
+          }
+        }
+      } finally {
+        await fh.close().catch(() => {});
+      }
+      if (!loaded || (total && loaded < total)) {
+        const err = new Error(`${label} interrupted before completion.`);
+        err.retryable = true;
+        throw err;
+      }
+      if (onProgress) onProgress(loaded, total || loaded);
+      return loaded;
+    } catch (err) {
+      lastErr = err;
+      await rawFs.promises.unlink(destPath).catch(() => {});
+      const transient = err?.retryable || /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|UND_ERR_|socket hang up|aborted|network|timed out|stream/i.test(String(err?.message || ''));
+      if (!transient || attempt >= maxAttempts) {
+        throw new Error(formatActionableError(err, label));
+      }
+      await new Promise((r) => setTimeout(r, 900 * attempt));
+    }
+  }
+  throw new Error(formatActionableError(lastErr, label));
+}
+
 async function resolveClaudeRelease() {
   const res = await fetch(`${CLAUDE_API}/v1/releases/latest`, {
     signal: AbortSignal.timeout(15000),
@@ -1041,11 +1105,15 @@ async function installClaudePipeline(options = {}) {
 
     job.begin(2, rel.url.split('/').pop());
     tmp = path.join(app.getPath('temp'), `forma-claude-${rel.version}-${Date.now()}.zip`);
-    const dl = await fetch(rel.url, { signal: AbortSignal.timeout(300000) });
-    if (!dl.ok) throw new Error(`Payload download failed (HTTP ${dl.status}).`);
-    const bytes = Buffer.from(await dl.arrayBuffer());
-    await rawFs.promises.writeFile(tmp, bytes);
-    job.done(2, `${(bytes.length / 1048576).toFixed(1)} MB`);
+    const dlSize = await downloadFileWithRetry(rel.url, tmp, {
+      timeoutMs: 300000,
+      label: 'Forma Claude download',
+      onProgress: (loaded, total) => {
+        job.begin(2, total ? `Downloading · ${Math.floor((loaded / total) * 100)}%` : `Downloading · ${(loaded / 1048576).toFixed(1)} MB`);
+      },
+    });
+    const bytes = await rawFs.promises.readFile(tmp);
+    job.done(2, `${(dlSize / 1048576).toFixed(1)} MB`);
 
     job.begin(3);
     const digest = crypto.createHash('sha256').update(bytes).digest('hex');
@@ -1555,8 +1623,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('forma:heal-run', async (event) => { localUpdate(event); return runBootHeal(); });
   setTimeout(() => { runBootHeal().catch(() => {}); }, 400).unref();
   setTimeout(()=>{collectLauncherTelemetry().catch(()=>{});},350).unref();
-  setTimeout(()=>{updater.check({autoDownload:true}).catch(()=>{});applyRequestedUpdate().catch(()=>{});},3000).unref();
-  const updateTimer=setInterval(()=>updater.check({autoDownload:true}).catch(()=>{}),10*60*1000);updateTimer.unref();
+  setTimeout(()=>{updater.check({autoDownload:settings.autoApplyLauncherUpdates!==false}).catch(()=>{});applyRequestedUpdate().catch(()=>{});},3000).unref();
+  const updateTimer=setInterval(()=>updater.check({autoDownload:settings.autoApplyLauncherUpdates!==false}).catch(()=>{}),10*60*1000);updateTimer.unref();
   app.on('before-quit',()=>{clearTimeout(autoInstallTimer);clearInterval(updateTimer);shield?.stopWatchdog();});
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
@@ -1662,14 +1730,17 @@ async function installFormaCodePipeline(options = {}) {
     const tmpDir = path.join(app.getPath('temp'), 'forma-code-stage');
     await fsp.mkdir(tmpDir, { recursive: true });
     const installerPath = path.join(tmpDir, `FormaCode-Setup-${rel.version}.exe`);
-    const dl = await fetch(rel.url, { signal: AbortSignal.timeout(180000) });
-    if (!dl.ok) throw new Error(`Download failed (HTTP ${dl.status}).`);
-    const buf = Buffer.from(await dl.arrayBuffer());
-    await rawFs.promises.writeFile(installerPath, buf);
-    job.done(1, `${(buf.length / 1048576).toFixed(1)} MB downloaded`);
+    const dlSize = await downloadFileWithRetry(rel.url, installerPath, {
+      timeoutMs: 240000,
+      label: 'Forma Code download',
+      onProgress: (loaded, total) => {
+        job.begin(1, total ? `Downloading Forma Code · ${Math.floor((loaded / total) * 100)}%` : `Downloading Forma Code · ${(loaded / 1048576).toFixed(1)} MB`);
+      },
+    });
+    job.done(1, `${(dlSize / 1048576).toFixed(1)} MB downloaded`);
 
     job.begin(2);
-    const actualSha = crypto.createHash('sha256').update(buf).digest('hex').toLowerCase();
+    const actualSha = await hashFileDirect(installerPath);
     if (actualSha !== rel.sha256) throw new Error('Installer SHA-256 verification failed.');
     job.done(2, actualSha.slice(0, 12) + ' …');
 
@@ -1771,8 +1842,14 @@ ipcMain.handle('forma:claude-activate', guarded(async (_event, key) => {
   return { ...result, launched: current.installed && !current.running };
 }));
 ipcMain.handle('forma:claude-download', async () => {
-  await shell.openExternal('https://claude.ai/download');
-  return { ok: true, url: 'https://claude.ai/download' };
+  const url = 'https://claude.ai/download';
+  try {
+    await shell.openExternal(url);
+  } catch (err) {
+    return { ok: false, error: formatActionableError(err, 'Opening Claude download page'), url };
+  }
+  const current = await detectClaude().catch(() => ({ installed: false }));
+  return { ok: true, url, installed: !!current.installed };
 });
 ipcMain.handle('forma:claude-open', async (_event, target) => {
   const allowed = {
@@ -1786,11 +1863,22 @@ ipcMain.handle('forma:claude-open', async (_event, target) => {
   return { ok: true };
 });
 ipcMain.handle('forma:update-all', guarded(async () => {
-  const qRes = exists(QWEN_EXE) ? await installPipeline({ launch: false }) : { ok: true, skipped: true };
-  const cRes = await installFormaCodePipeline({ launch: false });
-  const clRes = await installClaudePipeline({ launch: false });
-  await updater.check({ autoDownload: true }).catch(() => {});
-  return { ok: Boolean(qRes.ok && cRes.ok && clRes.ok), qwen: qRes, code: cRes, claude: clRes };
+  const qRes = exists(QWEN_EXE)
+    ? await installPipeline({ launch: false }).catch((e) => ({ ok: false, error: formatActionableError(e, 'Qwen update') }))
+    : { ok: true, skipped: true, reason: 'Qwen not installed' };
+  const codeInfo = await detectFormaCode().catch(() => ({ installed: false }));
+  const cRes = codeInfo.installed
+    ? await installFormaCodePipeline({ launch: false }).catch((e) => ({ ok: false, error: formatActionableError(e, 'Forma Code update') }))
+    : { ok: true, skipped: true, reason: 'Forma Code not installed' };
+  const clRes = await installClaudePipeline({ launch: false }).catch((e) => ({ ok: false, error: formatActionableError(e, 'Forma Claude update') }));
+  const launcherRes = await updater.check({ autoDownload: settings.autoApplyLauncherUpdates !== false }).catch((e) => ({ status: 'error', message: formatActionableError(e, 'Launcher update check') }));
+  return {
+    ok: Boolean(qRes.ok && cRes.ok && clRes.ok),
+    qwen: qRes,
+    code: cRes,
+    claude: clRes,
+    launcher: launcherRes || updater.state(),
+  };
 }));
 ipcMain.handle('forma:restore', guarded(() => restorePipeline()));
 ipcMain.handle('forma:connections',guarded(async()=>{if(!exists(QWEN_EXE)||await hashFile(QWEN_ASAR)!==require('./payload-manifest.json')['Forma.asar']){const r=await installPipeline({launch:false});if(!r.ok)return r;}await launchQwen(['--forma-connections']);return {ok:true};}));
@@ -1802,6 +1890,11 @@ ipcMain.handle('forma:settings', async (_event, update) => {
     }
     await saveSettings();
     applyMaterial();
+    if (update.autoApplyLauncherUpdates === true) {
+      const st = updater.state();
+      if (st.status === 'ready') scheduleAutoInstall();
+      else if (st.status === 'available') updater.download().catch(() => {});
+    }
   }
   return settings;
 });
