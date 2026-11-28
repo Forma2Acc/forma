@@ -510,14 +510,260 @@ spotlight($('qwenFeature'));
 
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeDrawer();
-  if (event.ctrlKey && ['1', '2', '3', '4'].includes(event.key)) {
+  if (event.ctrlKey && ['1', '2', '3', '4', '5'].includes(event.key)) {
     event.preventDefault();
-    setView(['home', 'models', 'activity', 'settings'][Number(event.key) - 1]);
+    setView(['home', 'models', 'tutorials', 'activity', 'settings'][Number(event.key) - 1]);
   }
 });
 window.addEventListener('focus', refresh);
 
+const TUTORIAL_STORAGE_KEY = 'forma.tutorials.done.v1';
+let tutorialTopic = 'all';
+let tutorialDone = {};
+try { tutorialDone = JSON.parse(localStorage.getItem(TUTORIAL_STORAGE_KEY) || '{}') || {}; } catch { tutorialDone = {}; }
+
+const TUTORIALS = [
+  {
+    id: 'launcher',
+    topic: 'launcher',
+    icon: 'i-forma',
+    badge: 'Core · Security',
+    title: 'Forma Launcher & Keys',
+    subtitle: 'FORMA1. 2-step verification, device binding (FRM-ID), and self-healing payload verification.',
+    steps: [
+      {
+        id: 'launcher-1',
+        title: '1. Obtain & activate your FORMA1. key (2-step verification)',
+        body: 'Open your key page via the activation prompt or Discord, copy the full <code>FORMA1.…</code> token, and paste it into Forma Launcher. Verification binds a short rolling lease to your Windows user session.'
+      },
+      {
+        id: 'launcher-2',
+        title: '2. Confirm device binding (FRM-ID)',
+        body: 'Your installation binds to a hardware-backed ID shown as <code>FRM-XXXX-XXXX</code> in the bottom-left rail and Settings. Keys cannot be hijacked on another PC without an admin reset.'
+      },
+      {
+        id: 'launcher-3',
+        title: '3. Automatic self-heal & rollback protection',
+        body: 'At boot, <code>self-healer.cjs</code> verifies the Ed25519 signature and Merkle root of <code>forma-manifest.json</code>. Corrupted or missing payload files are restored locally from <code>%LOCALAPPDATA%\\Forma\\cache\\blobs</code> without redownloading.'
+      },
+      {
+        id: 'launcher-4',
+        title: '4. Signed OTA updates without restart loops',
+        body: 'Keep <code>Auto-apply launcher updates</code> enabled in Settings. Updates download with HTTP Range resume, verify SHA-256 + Ed25519, and apply at most once per version.'
+      }
+    ],
+    actions: [
+      { label: 'Copy Forma ID', kind: 'ghost', run: () => $('copyFormaId')?.click() },
+      { label: 'Run Self-Heal Check', kind: 'primary', run: () => runSelfHealCheck() },
+      { label: 'Open Settings', kind: 'ghost', run: () => setView('settings') }
+    ]
+  },
+  {
+    id: 'qwen',
+    topic: 'qwen',
+    icon: 'i-qwen',
+    badge: 'Desktop · Tools',
+    title: 'Qwen Desktop',
+    subtitle: 'Official install, Electron fuse-safe launch, multi-provider Limit Reset, and account switcher.',
+    steps: [
+      {
+        id: 'qwen-1',
+        title: '1. Install Qwen 1.0.3 & Forma integration',
+        body: 'Click <code>Install integration</code> on Home. Forma downloads and SHA-256-verifies the official Qwen installer (handling CDN redirects safely), installs <code>Forma.asar</code>, and preserves your chat history.'
+      },
+      {
+        id: 'qwen-2',
+        title: '2. Fuse-safe launch & mode selection',
+        body: 'Launch Qwen from Forma Launcher so <code>Qwen.exe</code> passes embedded ASAR integrity and Electron fuse checks. Inside Qwen, choose <code>Read</code>, <code>Confirm</code>, or <code>Full access</code> mode.'
+      },
+      {
+        id: 'qwen-3',
+        title: '3. Limit Reset with multi-provider temp mail',
+        body: 'When rate-limited, open the Forma island in Qwen and click <code>Start limit reset</code>. Forma backs up chats, rotates automatically across <code>mail.tm</code>, <code>mail.gw</code>, <code>1secmail</code>, and <code>GuerrillaMail</code> if a provider is blocked, and restores all chats.'
+      },
+      {
+        id: 'qwen-4',
+        title: '4. Switch saved accounts anytime',
+        body: 'Every session created or used by Limit Reset is stored in the encrypted vault. Switch back to any previous account in the Qwen island without losing conversations.'
+      }
+    ],
+    actions: [
+      { label: 'Open Qwen Details', kind: 'primary', run: () => openDrawer() },
+      { label: 'Install / Repair Qwen', kind: 'ghost', run: () => act('install', { launch: !!state?.settings?.launchAfterInstall }) }
+    ]
+  },
+  {
+    id: 'claude',
+    topic: 'claude',
+    icon: 'i-claude',
+    badge: 'Anthropic · Archive',
+    title: 'Forma Claude',
+    subtitle: 'Limit Reset without losing chats, RunCMD local execution, Extended Thinking, and Brain Graph.',
+    steps: [
+      {
+        id: 'claude-1',
+        title: '1. Install Forma Claude over Claude Desktop',
+        body: 'Install official Claude Desktop, then click <code>Install</code> on the Forma Claude card. Forma clones into <code>%LOCALAPPDATA%\\Programs\\FormaClaude</code>, sets up fuse-safe loading, and keeps <code>app.asar.forma-backup</code>.'
+      },
+      {
+        id: 'claude-2',
+        title: '2. Activate your Forma Claude key',
+        body: 'Click <code>Get a key</code> on the Forma Claude card (or inside its drawer), copy your <code>FORMA1.…</code> key, and click <code>Activate</code> to hand it off securely via DPAPI.'
+      },
+      {
+        id: 'claude-3',
+        title: '3. Limit Reset without losing chats',
+        body: 'Before switching accounts or resetting limits, Forma monotonically archives conversations to <code>%APPDATA%\\Claude\\forma-reset\\archive</code> and re-imports them automatically so no chat thread is ever lost.'
+      },
+      {
+        id: 'claude-4',
+        title: '4. Use RunCMD, Thinking & Brain Graph',
+        body: 'Inside Forma Claude, run local PC commands via <code>RunCMD</code>, inspect extended model reasoning in <code>Thinking</code>, and navigate project/conversation memory through the <code>Brain Graph</code>.'
+      }
+    ],
+    actions: [
+      { label: 'Open Forma Claude', kind: 'primary', run: () => openClaudeDrawer() },
+      { label: 'Get Claude Key', kind: 'ghost', run: () => api.claudeKey().catch((e) => toast(e.message, true)) }
+    ]
+  },
+  {
+    id: 'code',
+    topic: 'code',
+    icon: 'i-opencode',
+    badge: 'OpenCode · IDE',
+    title: 'Forma Code',
+    subtitle: 'FCODE1. key activation, 10 reset methods, 5-account pool reliability, and Cloudflare WARP setup.',
+    steps: [
+      {
+        id: 'code-1',
+        title: '1. Install Forma Code & activate FCODE1. key',
+        body: 'Press <code>Install Forma Code</code> on Home. On first launch, obtain and enter your <code>FCODE1.…</code> key to unlock the encrypted credential vault and signed OTA updates.'
+      },
+      {
+        id: 'code-2',
+        title: '2. Add 5 accounts for best reliability',
+        body: 'In Forma Code account settings, add at least <code>5 accounts</code> to your rotation pool. Having 5 active accounts prevents back-to-back cooldown collisions during heavy coding sessions.'
+      },
+      {
+        id: 'code-3',
+        title: '3. Understand the 10 reset methods (20-stage waterfall)',
+        body: 'Forma Code automatically cascades across <code>10 reset methods</code> inside its 20-stage waterfall—trying token refresh, account pool rotation, temp-mail providers, and session rehydration before prompting you.'
+      },
+      {
+        id: 'code-4',
+        title: '4. Cloudflare One / WARP setup for blocked networks',
+        body: 'If your ISP or DNS blocks temp-mail APIs (<code>fetch failed</code>) or model gateways, install <code>Cloudflare WARP</code> (<code>1.1.1.1</code> / Cloudflare One), switch it ON, and retry your reset or download.'
+      }
+    ],
+    actions: [
+      { label: 'Install / Launch Forma Code', kind: 'primary', run: () => state?.formaCode?.installed ? act('code-launch') : act('code-install', { launch: true }) },
+      { label: 'Discord Support', kind: 'ghost', run: () => api.help('support').catch((e) => toast(e.message, true)) }
+    ]
+  }
+];
+
+function saveTutorialDone() {
+  try { localStorage.setItem(TUTORIAL_STORAGE_KEY, JSON.stringify(tutorialDone)); } catch {}
+}
+
+function renderTutorials() {
+  const grid = $('tutorialGrid');
+  if (!grid) return;
+  const totalSteps = TUTORIALS.reduce((sum, t) => sum + t.steps.length, 0);
+  const doneCount = TUTORIALS.reduce((sum, t) => sum + t.steps.filter((s) => !!tutorialDone[s.id]).length, 0);
+  if ($('tutorialProgress')) $('tutorialProgress').textContent = `${doneCount} / ${totalSteps} steps checked`;
+
+  const visible = tutorialTopic === 'all' ? TUTORIALS : TUTORIALS.filter((t) => t.topic === tutorialTopic);
+  grid.replaceChildren();
+  visible.forEach((tut, idx) => {
+    const card = document.createElement('article');
+    card.className = 'card tutorial-card';
+    card.style.setProperty('--i', idx);
+
+    const cardDone = tut.steps.filter((s) => !!tutorialDone[s.id]).length;
+    const head = document.createElement('div');
+    head.className = 'tutorial-head';
+    head.innerHTML =
+      `<div class="mark"><svg viewBox="0 0 24 24"><use href="#${tut.icon}"/></svg></div>` +
+      '<div class="tutorial-title-wrap"><div class="tutorial-title"></div><div class="tutorial-sub"></div></div>' +
+      `<span class="badge ${cardDone === tut.steps.length ? 'ok' : ''}">${cardDone}/${tut.steps.length} · ${tut.badge}</span>`;
+    head.querySelector('.tutorial-title').textContent = tut.title;
+    head.querySelector('.tutorial-sub').textContent = tut.subtitle;
+
+    const stepsEl = document.createElement('div');
+    stepsEl.className = 'tutorial-steps';
+    for (const step of tut.steps) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tutorial-step' + (tutorialDone[step.id] ? ' done' : '');
+      const check = document.createElement('span');
+      check.className = 'tutorial-check';
+      check.textContent = '✓';
+      const copy = document.createElement('div');
+      const title = document.createElement('div');
+      title.className = 'tutorial-step-title';
+      title.textContent = step.title;
+      const body = document.createElement('div');
+      body.className = 'tutorial-step-body';
+      body.innerHTML = step.body;
+      copy.append(title, body);
+      btn.append(check, copy);
+      btn.addEventListener('click', () => {
+        tutorialDone[step.id] = !tutorialDone[step.id];
+        saveTutorialDone();
+        renderTutorials();
+      });
+      stepsEl.append(btn);
+    }
+
+    const actionsEl = document.createElement('div');
+    actionsEl.className = 'tutorial-actions';
+    for (const actDef of tut.actions) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn ' + (actDef.kind || '');
+      b.textContent = actDef.label;
+      b.addEventListener('click', actDef.run);
+      actionsEl.append(b);
+    }
+
+    card.append(head, stepsEl, actionsEl);
+    grid.append(card);
+  });
+}
+
+document.querySelectorAll('#tutorialFilters .filter-pill').forEach((pill) => {
+  pill.addEventListener('click', () => {
+    tutorialTopic = pill.dataset.topic || 'all';
+    document.querySelectorAll('#tutorialFilters .filter-pill').forEach((p) => p.classList.toggle('is-active', p === pill));
+    renderTutorials();
+  });
+});
+
+async function runSelfHealCheck() {
+  if (!api.healRun) { toast('Self-heal check is unavailable.', true); return; }
+  const btn = $('btnSelfHeal');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api.healRun();
+    if (res?.ok) {
+      const detail = res.repaired ? `Repaired ${res.repaired} file(s) from cache.` : res.skipped ? 'Manifest not active in dev mode.' : 'All payload files verified clean.';
+      if ($('settingsHealStatus')) $('settingsHealStatus').textContent = detail;
+      toast(detail);
+    } else {
+      const msg = res?.reason || 'Self-heal verification failed.';
+      if ($('settingsHealStatus')) $('settingsHealStatus').textContent = msg;
+      toast(msg, true);
+    }
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 buildGrids();
+renderTutorials();
 refresh();
 setInterval(refresh, 6000);
 
@@ -535,6 +781,20 @@ function formatBytes(n) {
 function renderUpdateScreen(s) {
   if (!s) return;
   lastUpdateState = s;
+  if ($('settingsUpdateStatus')) $('settingsUpdateStatus').textContent = s.message || 'Ready';
+  if ($('settingsUpdateBadge')) {
+    const labelMap = {
+      idle: 'Idle',
+      checking: 'Checking…',
+      current: 'Up to date',
+      available: s.version ? `v${s.version} available` : 'Available',
+      downloading: `Downloading ${Math.floor(Number(s.progress) || 0)}%`,
+      verifying: 'Verifying…',
+      ready: s.autoApplying ? 'Restarting…' : 'Ready to install',
+      error: 'Error'
+    };
+    $('settingsUpdateBadge').textContent = labelMap[s.status] || s.status || 'Unknown';
+  }
   const screen = $('updateScreen');
   if (!screen) return;
 
@@ -651,21 +911,45 @@ if (window.formaLicense && typeof window.formaLicense.onState === 'function') {
   });
 }
 
-const updateCheck = document.createElement('button');
-updateCheck.className = 'btn';
-updateCheck.textContent = 'Check for launcher updates';
-updateCheck.style.marginTop = '14px';
-updateCheck.onclick = () => {
-  updateDismissedVersion = '';
-  manualUpdateCheck = true;
-  updateCheck.disabled = true;
-  window.formaUpdates && window.formaUpdates.check({autoDownload:true}).then((s) => {
-    renderUpdateScreen(s);
-    if (s && s.status === 'current') toast(s.message || 'Forma is up to date.');
-  }).catch((e) => toast(e.message, true)).finally(()=>{updateCheck.disabled=false;});
-};
-const settingsView = document.getElementById('view-settings');
-if (settingsView) settingsView.append(updateCheck);
+if ($('btnUpdateCheck')) {
+  $('btnUpdateCheck').onclick = () => {
+    updateDismissedVersion = '';
+    manualUpdateCheck = true;
+    $('btnUpdateCheck').disabled = true;
+    window.formaUpdates && window.formaUpdates.check({ autoDownload: true }).then((s) => {
+      renderUpdateScreen(s);
+      if (s && s.status === 'current') toast(s.message || 'Forma is up to date.');
+    }).catch((e) => toast(e.message, true)).finally(() => { $('btnUpdateCheck').disabled = false; });
+  };
+}
+if ($('btnUpdateAll')) {
+  $('btnUpdateAll').onclick = async () => {
+    if (running) { toast('An operation is already running.'); return; }
+    const btn = $('btnUpdateAll');
+    btn.disabled = true;
+    running = true;
+    render();
+    try {
+      const r = await api.updateAll();
+      if (r?.launcher) renderUpdateScreen(r.launcher);
+      const errs = [];
+      for (const [name, res] of [['Qwen', r?.qwen], ['Forma Code', r?.code], ['Forma Claude', r?.claude]]) {
+        if (res && res.ok === false) errs.push(`${name}: ${res.error || 'failed'}`);
+      }
+      if (errs.length) toast(errs.join(' · '), true);
+      else toast('All installed Forma apps and launcher checked & updated.');
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      running = false;
+      btn.disabled = false;
+      await refresh();
+    }
+  };
+}
+if ($('btnSelfHeal')) {
+  $('btnSelfHeal').onclick = () => runSelfHealCheck();
+}
 document.getElementById('btnConnections').onclick=async()=>{const b=document.getElementById('btnConnections');b.disabled=true;try{const r=await api.connections();if(!r.ok)throw Error(r.error);toast('Connections are opening in Qwen.');}catch(e){toast(e.message,true);}finally{b.disabled=false;}};
 
 document.getElementById('btnQwenSetup').onclick=()=>act('install',{launch:state.settings.launchAfterInstall});
